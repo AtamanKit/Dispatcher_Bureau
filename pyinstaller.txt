@@ -1,0 +1,1 @@
+pyinstaller --noconsole --icon=ataman_logo.ico Biroul_dispecerului.pyw
