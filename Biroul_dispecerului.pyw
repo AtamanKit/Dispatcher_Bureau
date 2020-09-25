@@ -1,15 +1,26 @@
-from PySide2.QtGui import QIcon, QBrush, QColor, QFont, QPainter, QPixmap, QRegExpValidator, QMovie
+from PySide2.QtGui import QPixmap
+from PySide2.QtWidgets import QSplashScreen, QApplication
+import sys
+
+app = QApplication(sys.argv)
+#Making a splash screen
+pixmap = QPixmap("ataman_splash.png")
+splash = QSplashScreen(pixmap)
+splash.show()
+splash.showMessage("Loading...")
+app.processEvents()
+
+from PySide2.QtGui import QIcon, QBrush, QColor, QFont, QPainter, QRegExpValidator, QMovie
 from PySide2.QtCore import QAbstractTableModel, Qt, QRegExp, QSize
-from PySide2.QtWidgets import QMdiSubWindow, QLineEdit, QMainWindow, QApplication, QMdiArea, \
+from PySide2.QtWidgets import QMdiSubWindow, QLineEdit, QMainWindow, QMdiArea, \
     QDesktopWidget, QMenu, QAction, QComboBox, QLabel, QFrame, QVBoxLayout, QHBoxLayout, QSplitter, \
     QTableView, QAbstractItemView, QDialog, QCompleter, QGridLayout, QPushButton, QFileDialog, \
-    QMessageBox, QProgressBar, QSplashScreen, QWidget, QTextEdit, QCheckBox
+    QMessageBox, QProgressBar, QWidget, QTextEdit, QCheckBox
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment
 from PySide2.QtCharts import QtCharts
 from qtwidgets import PasswordEdit
 from pymongo import MongoClient
-import sys
 import pandas as pd
 import numpy as np
 import re
@@ -3359,16 +3370,6 @@ class mainWindow(QMainWindow):
             self.continText.setFocus()
         else:
             self.deranjFunc()
-
-
-app = QApplication(sys.argv)
-
-#Making a splash screen
-pixmap = QPixmap("ataman_splash.png")
-splash = QSplashScreen(pixmap)
-splash.show()
-splash.showMessage("Loading...")
-app.processEvents()
 
 mw = mainWindow()
 try:

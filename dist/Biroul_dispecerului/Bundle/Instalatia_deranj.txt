@@ -1,8 +1,0 @@
-LEA-10kV
-LEA-0.4kV
-LC-10kV
-LC-0.4kV
-ID-10kV
-ID-0.4kV
-Bloc locativ
-Consumator casnic
