@@ -1,0 +1,142 @@
+([
+	{
+		"name": "Ciliuta V.",
+		"position": "Sef O. R.",
+		"nr_tabel": "1111",
+		"gr_ts": 5,
+		"sector": "administratie"
+	},
+	{
+		"name": "Ursu V.",
+		"position": "Sef gr. tehnic",
+		"nr_tabel": "1111",
+		"gr_ts": 5,
+		"sector": "administratie"
+	},
+	{
+		"name": "Costras I.",
+		"position": "Dispecerat",
+		"nr_tabel": "1111",
+		"gr_ts": 5,
+		"sector": "PDJT GL"
+	},
+	{
+		"name": "Maxim I.",
+		"position": "Maistru",
+		"nr_tabel": "1111",
+		"gr_ts": 5,
+		"sector": "Balatina"
+	},
+	{
+		"name": "Gustoi V.",
+		"position": "Maistru",
+		"nr_tabel": "1111",
+		"gr_ts": 5,
+		"sector": "Sturzovca"
+	},
+	{
+		"name": "Albu G.",
+		"position": "Glodeni",
+		"nr_tabel": "1111",
+		"gr_ts": 5,
+		"sector": "Glodeni"
+	},
+	{
+		"name": "Pokorschi V.",
+		"position": "Maistru",
+		"nr_tabel": "1111",
+		"gr_ts": 5,
+		"sector": "PT, REI"
+	},
+	{
+		"name": "Masnicu I.",
+		"position": "Electromontor",
+		"nr_tabel": "1111",
+		"gr_ts": 4,
+		"sector": "FIO"
+	},
+	{
+		"name": "Certan G.",
+		"position": "Electromontor",
+		"nr_tabel": "1111",
+		"gr_ts": 4,
+		"sector": "FIO"
+	},
+	{
+		"name": "Ceban D.",
+		"position": "Electromontor",
+		"nr_tabel": "1111",
+		"gr_ts": 4,
+		"sector": "FIO"
+	},
+	{
+		"name": "Eftode E.",
+		"position": "Electromontor",
+		"nr_tabel": "1111",
+		"gr_ts": 4,
+		"sector": "FIO"
+	},
+	{
+		"name": "Cozac S.",
+		"position": "Electromontor",
+		"nr_tabel": "1111",
+		"gr_ts": 4,
+		"sector": "FIO"
+	},
+	{
+		"name": "Cazac A.",
+		"position": "Electromontor",
+		"nr_tabel": "1111",
+		"gr_ts": 4,
+		"sector": "Balatina"
+	},
+	{
+		"name": "Ceres M.",
+		"position": "Electromontor",
+		"nr_tabel": "1111",
+		"gr_ts": 4,
+		"sector": "Balatina"
+	},
+	{
+		"name": "Gutu M.",
+		"position": "Electromontor",
+		"nr_tabel": "1111",
+		"gr_ts": 4,
+		"sector": "Sturzovca"
+	},
+	{
+		"name": "Colesnic I.",
+		"position": "Electromontor",
+		"nr_tabel": "1111",
+		"gr_ts": 4,
+		"sector": "Sturzovca"
+	},
+	{
+		"name": "Roman S.",
+		"position": "Electromontor",
+		"nr_tabel": "1111",
+		"gr_ts": 4,
+		"sector": "Glodeni"
+	},
+	{
+		"name": "Moldoveanu D.",
+		"position": "Electromontor",
+		"nr_tabel": "1111",
+		"gr_ts": 4,
+		"sector": "Glodeni"
+	},
+	{
+		"name": "Carenev I.",
+		"position": "Electromontor",
+		"nr_tabel": "1111",
+		"gr_ts": 4,
+		"sector": "PT, REI"
+	},
+	{
+		"name": "Jaloba V.",
+		"position": "Electromontor",
+		"nr_tabel": "1111",
+		"gr_ts": 4,
+		"sector": "PT, REI"
+	},
+])
