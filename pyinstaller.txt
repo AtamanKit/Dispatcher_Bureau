@@ -1,0 +1,16 @@
+pyinstaller --noconsole --icon=ataman_logo.ico Biroul_dispecerului_v3.pyw
+
+
+
+
+
+1. Copii in mapa "dist" mapele si file-le necesare (10 in total: apiclient, Bundle, 
+	google_api_python_client-1.12.8.dist-info, google_my, Sources, ataman_logo.ico,
+	ataman_splash.png, calendar-blue.ico, folder.ico, message.ico)
+2. Modific denumirea, fara liniuti
+3. Deschid programa merg in meniul setari si sterg datele
+4. Sterg file-le: "Biroul_dispecerului_v3.spec", mapa "build"
+5. Sterg file-le din mapa setup cu exceptia a 3 file-ri (Python, Microsoft C++, source_setup)
+6. Copii file-le din mapa dist in mapa setup
+7. In cazul in care se schimba versiunea programei, fac modificarile in source_setup
+8. Pornesc source_setup
