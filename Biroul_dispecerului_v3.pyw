@@ -25,14 +25,14 @@ from pymongo import MongoClient
 from docx import Document
 from docx2pdf import convert
 import pandas as pd
-import numpy as np
+import pymongo
 import re
 import datetime
 import random
 import webbrowser
 import os.path
 import shutil
-import subprocess
+
 
 #Working with google API
 import pickle
@@ -4992,77 +4992,79 @@ class mainWindow(QMainWindow):
                         self.angajati.find_one({"name": self.nameFMenu})["gr_ts"] +\
                                             "\n" + myDateTime.strftime("%d.%m.%y")
         try:
-            # Populez registru internet
-            if self.okControl:
-                if self.searchComma:
-                    pt = self.ptText
-                for i in self.db.bir_app_al.find({"nr_ds": {"$ne": ""}}).sort("_id", -1).limit(1):
-                    self.nrAlDs = int(i["nr_ds"]) + 1
-                #Creez linkul dispozitiei
-                if self.formCheck.isChecked() == True:
-                    self.dsForm()
-                elif self.formCheck.isChecked() == False:
+            try:
+                # Populez registru internet
+                if self.okControl:
+                    if self.searchComma:
+                        pt = self.ptText
+                    # for i in self.db.bir_app_al.find({"nr_ds": {"$ne": ""}}).sort("_id", -1).limit(1):
+                    #     self.nrAlDs = int(i["nr_ds"]) + 1
+                    #Creez linkul dispozitiei
+                    if self.formCheck.isChecked() == True:
+                        self.dsForm()
+                    elif self.formCheck.isChecked() == False:
+                        dlg = QFileDialog()
+                        self.fileName = dlg.getOpenFileName()
+                    link = self.fileName[0]
+                    self.db.bir_app_al.insert_one({
+                        "id": self.idAlDs,
+                        "oficiul": self.ofVar,
+                        "nr_ds": self.idAlDs,
+                        "nr_al": "",
+                        "instalatia": self.instLine.currentText(),
+                        "pt": pt,
+                        "localitatea": localitatea,
+                        "fid_nr": fid_nr,
+                        "lucrarile": self.lucrLine.currentText(),
+                        "sef": self.sfLine.text(),
+                        "mem_ech": mem_ech,
+                        "emitent": emitent,
+                        "cu_dec": "",
+                        "mas_teh": "",
+                        "semnatura": "Semnatura",
+                        "starea": starea,
+                        "pregatire": "Pregatire",
+                        "admitere": "Admitere",
+                        "terminare": "Terminare",
+                        "link": link
+                    })
+                else:
+                    # for i in self.db.bir_app_al.find({"nr_al": {"$ne": ""}}).sort("_id", -1).limit(1):
+                    #     self.nrAlDs = int(i["nr_al"]) + 1
+                    #Creez linkul autorizatiei
                     dlg = QFileDialog()
                     self.fileName = dlg.getOpenFileName()
-                link = self.fileName[0]
-                self.db.bir_app_al.insert_one({
-                    "id": self.idAlDs,
-                    "oficiul": self.ofVar,
-                    "nr_ds": self.nrAlDs,
-                    "nr_al": "",
-                    "instalatia": self.instLine.currentText(),
-                    "pt": pt,
-                    "localitatea": localitatea,
-                    "fid_nr": fid_nr,
-                    "lucrarile": self.lucrLine.currentText(),
-                    "sef": self.sfLine.text(),
-                    "mem_ech": mem_ech,
-                    "emitent": emitent,
-                    "cu_dec": "",
-                    "mas_teh": "",
-                    "semnatura": "Semnatura",
-                    "starea": starea,
-                    "pregatire": "Pregatire",
-                    "admitere": "Admitere",
-                    "terminare": "Terminare",
-                    "link": link
-                })
-            else:
-                for i in self.db.bir_app_al.find({"nr_al": {"$ne": ""}}).sort("_id", -1).limit(1):
-                    self.nrAlDs = int(i["nr_al"]) + 1
-                #Creez linkul autorizatiei
-                dlg = QFileDialog()
-                self.fileName = dlg.getOpenFileName()
-                link = self.fileName[0]
-                self.db.bir_app_al.insert_one({
-                    "id": self.idAlDs,
-                    "oficiul": self.ofVar,
-                    "nr_ds": "",
-                    "nr_al": self.nrAlDs,
-                    "instalatia": self.instLine.currentText(),
-                    "pt": pt,
-                    "localitatea": localitatea,
-                    "fid_nr": self.ptFidLine.text(),
-                    "lucrarile": self.lucrLine.currentText(),
-                    "sef": self.sfLine.text(),
-                    "mem_ech": "",
-                    "emitent": emitent,
-                    "cu_dec": deconect,
-                    "mas_teh": mas_teh,
-                    "semnatura": "Semnatura",
-                    "starea": starea,
-                    "pregatire": "Pregatire",
-                    "admitere": "Admitere",
-                    "terminare": "Terminare",
-                    "link": link
-                })
+                    link = self.fileName[0]
+                    self.db.bir_app_al.insert_one({
+                        "id": self.idAlDs,
+                        "oficiul": self.ofVar,
+                        "nr_ds": "",
+                        "nr_al": self.idAlDs,
+                        "instalatia": self.instLine.currentText(),
+                        "pt": pt,
+                        "localitatea": localitatea,
+                        "fid_nr": self.ptFidLine.text(),
+                        "lucrarile": self.lucrLine.currentText(),
+                        "sef": self.sfLine.text(),
+                        "mem_ech": "",
+                        "emitent": emitent,
+                        "cu_dec": deconect,
+                        "mas_teh": mas_teh,
+                        "semnatura": "Semnatura",
+                        "starea": starea,
+                        "pregatire": "Pregatire",
+                        "admitere": "Admitere",
+                        "terminare": "Terminare",
+                        "link": link
+                    })
 
-        except UnboundLocalError:
-            self.msSecCall('Nu ati introdus corect denumirea de dispecerat "PT"!\n'
-                           'Inregistrarea nu se va efectua!')
+            except UnboundLocalError:
+                self.msSecCall('Nu ati introdus corect denumirea de dispecerat "PT"!\n'
+                               'Inregistrarea nu se va efectua!')
+        except pymongo.errors.DuplicateKeyError:
+            self.msSecCall('Cineva concomitent cu dvs. incearca sa inregistreze DS/AL!\n'
+                           'Pentru a exclude dublarea nr. DS/AL mai incercati odata!')
 
-        # Thread(target=self.centrAlPop).start()
-        # Thread(target=self.mongoWatch).start()
 
         self.centrAlPop()
         self.dialBox.close()
