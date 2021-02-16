@@ -70,7 +70,7 @@ class TableModel(QAbstractTableModel):
             # if isinstance(value, int):
             #     return str(value)
             # else:
-            return value
+            return str(value)
 
         if role == Qt.TextAlignmentRole:
             value = self._data.iloc[index.row(), index.column()]
@@ -3216,8 +3216,10 @@ class mainWindow(QMainWindow):
         # self.data = pd.DataFrame(self.centralReg)
         self.data = pd.DataFrame(self.db.bir_app_al.find())
         myColumn = self.data.pop("_id")
-        self.data.insert(19, "id", myColumn)
-        self.data.columns = range(20)
+        self.data.insert(20, "_id", myColumn)
+        myColumn = self.data.pop("id")
+        self.data.insert(20, "id", myColumn)
+        self.data.columns = range(21)
         # print(self.data.at[2, 19])
         self.data.sort_index(ascending=False, inplace=True, ignore_index=True)
         header = ["Oficiul", "Nr. \nDS", "Nr. \nAL", "Instalatia", \
@@ -3229,7 +3231,7 @@ class mainWindow(QMainWindow):
                   "Masurile tehnice\n de asigurare a TS\ncu indic. deconect.\nlocurilor de\nmont legaturilor\n la pamint",\
                   "Semnatura\nlucratorilor\ncare au executat \ninstr. periodica \nsi care au\nfost instruiti",\
                   "Starea", "Pregat. locului\nde munca (data,\nora)", "Admiterea\nechipei (data,\nora)",
-                  "Terminarea\nlucrarilor (data,\nora)", "Linkul", "id"]
+                  "Terminarea\nlucrarilor (data,\nora)", "Linkul", "_id", "id"]
         self.table = QTableView()
         self.model = TableModel(self.data, header)
 
@@ -3239,6 +3241,7 @@ class mainWindow(QMainWindow):
         self.table.resizeRowsToContents()
         self.table.resizeColumnsToContents()
         self.table.hideColumn(19)
+        self.table.hideColumn(20)
         for i in range(20):
             self.table.setRowHeight(i, 100)
         # self.table.setColumnWidth(1, 50)
@@ -4924,6 +4927,9 @@ class mainWindow(QMainWindow):
         self.abrOficii()
         myDateTime = datetime.datetime.now()
 
+        for i in self.db.bir_app_al.find().sort("_id", -1).limit(1):
+            self.idAlDs = int(i["id"]) + 1
+
         self.searchComma = re.search(",", self.ptLine.text())
         if self.searchComma:
             self.ptText = self.ptLine.text()
@@ -5000,6 +5006,7 @@ class mainWindow(QMainWindow):
                     self.fileName = dlg.getOpenFileName()
                 link = self.fileName[0]
                 self.db.bir_app_al.insert_one({
+                    "id": self.idAlDs,
                     "oficiul": self.ofVar,
                     "nr_ds": self.nrAlDs,
                     "nr_al": "",
@@ -5028,6 +5035,7 @@ class mainWindow(QMainWindow):
                 self.fileName = dlg.getOpenFileName()
                 link = self.fileName[0]
                 self.db.bir_app_al.insert_one({
+                    "id": self.idAlDs,
                     "oficiul": self.ofVar,
                     "nr_ds": "",
                     "nr_al": self.nrAlDs,
