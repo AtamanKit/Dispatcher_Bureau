@@ -3917,16 +3917,16 @@ class mainWindow(QMainWindow):
             self.ofCorectCombo.currentTextChanged.connect(self.loadPtCorect)
 
             if self.data.at[self.modRow, 1] != "":
-                self.nrAlDs = self.data.at[self.modRow, 1]
+                self.idAlDs = self.data.at[self.modRow, 1]
                 nrLabel = QLabel("Nr. DS: ")
             elif self.data.at[self.modRow, 2] != "":
-                self.nrAlDs = self.data.at[self.modRow, 2]
+                self.idAlDs = self.data.at[self.modRow, 2]
                 nrLabel = QLabel("Nr. AL: ")
 
             nrLabel.setStyleSheet("margin-left: 38%;")
 
             self.nrLine = QLineEdit()
-            self.nrLine.setText(str(self.nrAlDs))
+            self.nrLine.setText(str(self.idAlDs))
             self.nrLine.setStyleSheet('background-color: #ffffff; color: rgb(0, 0, 0);')
             self.nrLine.setFixedWidth(100)
 
@@ -5152,7 +5152,7 @@ class mainWindow(QMainWindow):
         #Creez dispozitia in WORD
         document = Document()
         document.add_heading("SA RED-Nord, of. " + self.ofCombo.currentText() + " " + "Subdiviziunea: " + sector, 0)
-        document.add_heading("Dispozitia Nr.: " + str(self.nrAlDs), 1)
+        document.add_heading("Dispozitia Nr.: " + str(self.idAlDs), 1)
 
         #Creez paragraf
         document.add_paragraph()
@@ -5260,13 +5260,13 @@ class mainWindow(QMainWindow):
         #                                 "Text File (*.txt *.docx *.pdf)")
         # document.save(self.fileName[0])
         # print(self.fileName[0])
-
-        document.save(self.dsPath + "/" + str(self.nrAlDs) + ".docx")
-        convert(self.dsPath + "/" + str(self.nrAlDs) + ".docx", \
-                self.dsPath + "/" + str(self.nrAlDs) + ".pdf")
+        # myNumb = "proba"
+        document.save(self.dsPath + "/" + "myNumb" + ".docx")
+        convert(self.dsPath + "/" + "myNumb" + ".docx", \
+                self.dsPath + "/" + "myNumb" + ".pdf")
         self.fileName = []
-        self.fileName.append(self.dsPath + "/" + str(self.nrAlDs) + ".pdf")
-        os.remove(self.dsPath + "/" + str(self.nrAlDs) + ".docx")
+        self.fileName.append(self.dsPath + "/" + "myNumb" + ".pdf")
+        os.remove(self.dsPath + "/" + "myNumb" + ".docx")
 
     def dtDispozitie(self):
         self.destLoad()
