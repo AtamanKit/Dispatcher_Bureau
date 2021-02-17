@@ -5213,6 +5213,7 @@ class mainWindow(QMainWindow):
         name = self.emLine.text()
         name = name.split()
         name = name[0] + " " + name[1]
+        print(self.angajati.find_one({"name": name})["semnatura_el"])
         try:
             if self.angajati.find_one({"name": name})["semnatura_el"] != "":
                 document.add_picture(self.angajati.find_one({"name": name})["semnatura_el"])
