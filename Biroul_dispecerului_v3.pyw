@@ -5260,13 +5260,12 @@ class mainWindow(QMainWindow):
         #                                 "Text File (*.txt *.docx *.pdf)")
         # document.save(self.fileName[0])
         # print(self.fileName[0])
-        mynumb = "proba"
-        document.save(self.dsPath + "/" + mynumb + ".docx")
-        convert(self.dsPath + "/" + mynumb + ".docx", \
-                self.dsPath + "/" + mynumb + ".pdf")
+        document.save(self.dsPath + "/" + str(self.idAlDs) + ".docx")
+        convert(self.dsPath + "/" + str(self.idAlDs) + ".docx", \
+                self.dsPath + "/" + str(self.idAlDs) + ".pdf")
         self.fileName = []
-        self.fileName.append(self.dsPath + "/" + mynumb + ".pdf")
-        os.remove(self.dsPath + "/" + mynumb + ".docx")
+        self.fileName.append(self.dsPath + "/" + str(self.idAlDs) + ".pdf")
+        os.remove(self.dsPath + "/" + str(self.idAlDs) + ".docx")
 
     def dtDispozitie(self):
         self.destLoad()
