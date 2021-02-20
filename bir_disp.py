@@ -3917,21 +3917,22 @@ class mainWindow(QMainWindow):
             self.ofCorectCombo.currentTextChanged.connect(self.loadPtCorect)
 
             if self.data.at[self.modRow, 1] != "":
-                self.idAlDs = self.data.at[self.modRow, 1]
+                nrDsAl = self.data.at[self.modRow, 1]
                 nrLabel = QLabel("Nr. DS: ")
             elif self.data.at[self.modRow, 2] != "":
-                self.idAlDs = self.data.at[self.modRow, 2]
+                nrDsAl = self.data.at[self.modRow, 2]
                 nrLabel = QLabel("Nr. AL: ")
 
             nrLabel.setStyleSheet("margin-left: 38%;")
 
             self.nrLine = QLineEdit()
-            self.nrLine.setText(str(self.idAlDs))
-            self.nrLine.setStyleSheet('background-color: #ffffff; color: rgb(0, 0, 0);')
-            self.nrLine.setFixedWidth(100)
+            self.nrLine.setText(str(nrDsAl))
+            self.nrLine.setStyleSheet('background-color: #ffffff; color: rgb(130, 130, 130);')
+            self.nrLine.setFixedWidth(20)
+            self.nrLine.setEnabled(False)
 
             empty = QLabel()
-            empty.setStyleSheet("margin-right: 182%;")
+            empty.setStyleSheet("margin-right: 260%;")
 
             hbox = QHBoxLayout()
             hbox.addWidget(ofLabel)
@@ -5071,10 +5072,10 @@ class mainWindow(QMainWindow):
 
     def corectieFunc(self):
         self.data.at[self.modRow, 0] = self.ofCorectCombo.currentText()
-        if self.data.at[self.modRow, 1] != "":
-            self.data.at[self.modRow, 1] = self.nrLine.text()
-        elif self.data.at[self.modRow, 2] != "":
-            self.data.at[self.modRow, 2] = self.nrLine.text()
+        # if self.data.at[self.modRow, 1] != "":
+        #     self.data.at[self.modRow, 1] = self.nrLine.text()
+        # elif self.data.at[self.modRow, 2] != "":
+        #     self.data.at[self.modRow, 2] = self.nrLine.text()
         self.data.at[self.modRow, 3] = self.instLine.currentText()
         self.data.at[self.modRow, 4] = self.ptLine.text()
         self.data.at[self.modRow, 6] = self.ptFidLine.text()
@@ -5091,36 +5092,36 @@ class mainWindow(QMainWindow):
         self.data.at[self.modRow, 11] = self.decCombo.currentText()
         self.data.at[self.modRow, 12] = self.masLine_corect.text()
 
-        if self.data.at[self.modRow, 1] != "":
-            self.db.bir_app_al.update_one({"_id": self.data.at[self.modRow, 19]},
-                                         {"$set": {
-                                             "oficiul": self.data.at[self.modRow, 0],
-                                             "nr_ds": self.data.at[self.modRow, 1],
-                                             "instalatia": self.data.at[self.modRow, 3],
-                                             "pt": self.data.at[self.modRow, 4],
-                                             "fid_nr": self.data.at[self.modRow, 6],
-                                             "lucrarile": self.data.at[self.modRow, 7],
-                                             "sef": self.data.at[self.modRow, 8],
-                                             "mem_ech": self.data.at[self.modRow, 9],
-                                             "emitent": self.data.at[self.modRow, 10],
-                                             "cu_dec": self.data.at[self.modRow, 11],
-                                             "mas_teh": self.data.at[self.modRow, 12],
-                                         }})
-        if self.data.at[self.modRow, 2] != "":
-            self.db.bir_app_al.update_one({"_id": self.data.at[self.modRow, 19]},
-                                         {"$set": {
-                                             "oficiul": self.data.at[self.modRow, 0],
-                                             "nr_al": self.data.at[self.modRow, 2],
-                                             "instalatia": self.data.at[self.modRow, 3],
-                                             "pt": self.data.at[self.modRow, 4],
-                                             "fid_nr": self.data.at[self.modRow, 6],
-                                             "lucrarile": self.data.at[self.modRow, 7],
-                                             "sef": self.data.at[self.modRow, 8],
-                                             "mem_ech": self.data.at[self.modRow, 9],
-                                             "emitent": self.data.at[self.modRow, 10],
-                                             "cu_dec": self.data.at[self.modRow, 11],
-                                             "mas_teh": self.data.at[self.modRow, 12],
-                                         }})
+
+        self.db.bir_app_al.update_one({"_id": self.data.at[self.modRow, 19]},
+                                     {"$set": {
+                                         "oficiul": self.data.at[self.modRow, 0],
+                                         # "nr_ds": self.data.at[self.modRow, 1],
+                                         "instalatia": self.data.at[self.modRow, 3],
+                                         "pt": self.data.at[self.modRow, 4],
+                                         "fid_nr": self.data.at[self.modRow, 6],
+                                         "lucrarile": self.data.at[self.modRow, 7],
+                                         "sef": self.data.at[self.modRow, 8],
+                                         "mem_ech": self.data.at[self.modRow, 9],
+                                         "emitent": self.data.at[self.modRow, 10],
+                                         "cu_dec": self.data.at[self.modRow, 11],
+                                         "mas_teh": self.data.at[self.modRow, 12],
+                                     }})
+        # if self.data.at[self.modRow, 2] != "":
+        #     self.db.bir_app_al.update_one({"_id": self.data.at[self.modRow, 19]},
+        #                                  {"$set": {
+        #                                      "oficiul": self.data.at[self.modRow, 0],
+        #                                      "nr_al": self.data.at[self.modRow, 2],
+        #                                      "instalatia": self.data.at[self.modRow, 3],
+        #                                      "pt": self.data.at[self.modRow, 4],
+        #                                      "fid_nr": self.data.at[self.modRow, 6],
+        #                                      "lucrarile": self.data.at[self.modRow, 7],
+        #                                      "sef": self.data.at[self.modRow, 8],
+        #                                      "mem_ech": self.data.at[self.modRow, 9],
+        #                                      "emitent": self.data.at[self.modRow, 10],
+        #                                      "cu_dec": self.data.at[self.modRow, 11],
+        #                                      "mas_teh": self.data.at[self.modRow, 12],
+        #                                  }})
 
         self.dialBox.close()
 
