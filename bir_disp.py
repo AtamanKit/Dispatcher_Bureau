@@ -114,8 +114,9 @@ class TableModel(QAbstractTableModel):
             matchedTerm = re.search("Terminat:", str(value))
             matchedLink = re.search(":/", str(value))
             matchedConf = re.search("Confirmat:", str(value))
+            matchedCerere = re.search("Cerere", str(value))
             matched2lines = re.search("--", str(value))
-            if str(value) == "Nou inregistrata" or str(value) == "Neexecutat":
+            if str(value) == "Nou inregistrata" or str(value) == "Neexecutat" or matchedCerere:
                 # print(str(valuePlus))
                 return QColor(179, 48, 48)
             elif bool(matchedShort) or bool(matchedRef)\
@@ -170,9 +171,11 @@ class TableModel(QAbstractTableModel):
             matchedPreg = re.search("Pregatire:", str(value))
             matchedTerm = re.search("Terminat:", str(value))
             matched2lines = re.search("--", str(value))
+            matchedCerere = re.search("Cerere", str(value))
             if str(value) == "Nou inregistrata" or bool(matchedRef)\
                     or bool(matchedShort) or str(value) == "Neexecutat"\
-                    or bool(matchedPreg) or bool(matchedTerm) or matched2lines:
+                    or bool(matchedPreg) or bool(matchedTerm) or matched2lines \
+                    or matchedCerere:
                 return QColor(255, 255, 255)
             # elif str(value) == "Programat":
             #     return QColor(255, 255, 255)
@@ -4133,7 +4136,8 @@ class mainWindow(QMainWindow):
         if self.namePosition == "Dispecer":
             searchAcc = re.search("Acceptat:", self.data.at[self.modRow, 14])
             if searchAcc:
-                if self.data.at[self.modRow, 15] == "Pregatire":
+                if self.data.at[self.modRow, 15] == "Pregatire" \
+                    or self.data.at[self.modRow, 15] == "Cerere la pregatire":
                     self.dtRegAl()
                     myMaxRow = self.wsRegAl.max_row + 1
                     myDateTime = datetime.datetime.now()
@@ -4297,7 +4301,8 @@ class mainWindow(QMainWindow):
     def admFunc(self):
         if self.namePosition == "Dispecer":
             searchPreg = re.search("Pregatire:", self.data.at[self.modRow, 15])
-            if self.data.at[self.modRow, 16] == "Admitere":
+            if self.data.at[self.modRow, 16] == "Admitere" \
+                    or self.data.at[self.modRow, 16] == "Cerere la admitere":
                 if self.data.at[self.modRow, 11] == "" or self.data.at[self.modRow, 11] == "Fara deconectari":
                     self.pregFunc()
                 elif searchPreg:
@@ -4390,7 +4395,8 @@ class mainWindow(QMainWindow):
         if self.namePosition == "Dispecer":
             searchAdm = re.search("Admitere:", self.data.at[self.modRow, 16])
             if searchAdm:
-                if self.data.at[self.modRow, 17] == "Terminare":
+                if self.data.at[self.modRow, 17] == "Terminare" \
+                        or self.data.at[self.modRow, 17] == "Cerere la terminare":
                     self.dtRegAl()
                     # myMaxRow = self.wsRegAl.max_row
                     # Controlez daca exista mapa cu anul
