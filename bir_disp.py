@@ -11,11 +11,11 @@ splash.showMessage("Loading...")
 app.processEvents()
 
 from PySide2.QtGui import QIcon, QBrush, QColor, QFont, QPainter, QRegExpValidator, QMovie, QPalette
-from PySide2.QtCore import QAbstractTableModel, Qt, QRegExp, QSize, QDate, QTimer
+from PySide2.QtCore import QAbstractTableModel, Qt, QRegExp, QSize, QThreadPool, Signal, QObject, QRunnable
 from PySide2.QtWidgets import QMdiSubWindow, QLineEdit, QMainWindow, QMdiArea, \
     QDesktopWidget, QMenu, QAction, QComboBox, QLabel, QFrame, QVBoxLayout, QHBoxLayout, QSplitter, \
     QTableView, QAbstractItemView, QDialog, QCompleter, QGridLayout, QPushButton, QFileDialog, \
-    QMessageBox, QProgressBar, QWidget, QTextEdit, QCheckBox, QStatusBar, QToolBar, QCalendarWidget, \
+    QMessageBox, QProgressBar, QWidget, QTextEdit, QCheckBox, QStatusBar, QCalendarWidget, \
     QProgressDialog
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment
@@ -545,9 +545,18 @@ class MyLineEdit(QLineEdit):
         if self.text() == "":
             self.setText(self.initText)
 
-# #Clasul loading
-# class loadWidow(QMainWindow):
+# Multiprossesing
+class WorkerSignal(QObject):
+    finished = Signal()
 
+class Worker(QRunnable):
+    signal = WorkerSignal()
+
+    def run(self):
+        mainWindow.loadMongo(self)
+        change_stream = self.client.djUN.bir_app_al.watch()
+        for change in change_stream:
+            self.signal.finished.emit()
 
 #Clasul principal
 class mainWindow(QMainWindow):
@@ -619,7 +628,7 @@ class mainWindow(QMainWindow):
         regMen = bar.addMenu('Registre')
         regAl = QAction('Autorizatii si dispozitii', self)
         regMen.addAction(regAl)
-        regAl.triggered.connect(self.centrAlPop)
+        regAl.triggered.connect(self.centrAlThread)
         regDec = QAction('Raport deconectari', self)
         regMen.addAction(regDec)
         regDec.triggered.connect(self.decTabWindow)
@@ -3189,6 +3198,9 @@ class mainWindow(QMainWindow):
         self.secMB.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
         self.secMB.setDefaultButton(QMessageBox.Cancel)
 
+    def msCerere(self):
+        self.msSecCall("Aveti cerere la pregatire")
+
 
     def resetTrig(self):
         self.resetCall("Toate datele din cimpuri vor fi sterse!")
@@ -3197,11 +3209,13 @@ class mainWindow(QMainWindow):
         else:
             self.secMB.close()
 
-    # def refreshAl(self):
-    #     self.centrAlPop()
-
-    # def refreshDeranj(self):
-    #     self.deranjPop()
+    # Multiprossesing:
+    def centrAlThread(self):
+        worker = Worker()
+        self.threadpool = QThreadPool()
+        self.threadpool.start(worker)
+        worker.signal.finished.connect(self.msCerere)
+        self.centrAlPop()
 
     #Functie populez Biroul dispecerului cu Autorizatie
     def centrAlPop(self):
