@@ -554,9 +554,22 @@ class Worker(QRunnable):
 
     def run(self):
         mainWindow.loadMongo(self)
-        change_stream = self.client.djUN.bir_app_al.watch()
+        change_stream = self.client.djUN.bir_app_al.watch([{
+            '$match': {
+                    'operationType': {'$in': ['update']}
+            }}, {
+            '$project': {
+                'fullDocument_id': '$fullDocument._id',
+                'pregatire': '$fullDocument.pregatire',
+                'admitere': '$fullDocument.admitere',
+                'terminare': '$fullDocument.terminare',
+            }
+        }], full_document='updateLookup')
         for change in change_stream:
-            self.signal.finished.emit()
+            if change['pregatire'] == 'Cerere la pregatire' \
+                or change['admitere'] == 'Cerere la admitere' \
+                or change['terminare'] == 'Cerere la terminare':
+                self.signal.finished.emit()
 
 #Clasul principal
 class mainWindow(QMainWindow):
@@ -628,7 +641,7 @@ class mainWindow(QMainWindow):
         regMen = bar.addMenu('Registre')
         regAl = QAction('Autorizatii si dispozitii', self)
         regMen.addAction(regAl)
-        regAl.triggered.connect(self.centrAlThread)
+        regAl.triggered.connect(self.centrAlPop)
         regDec = QAction('Raport deconectari', self)
         regMen.addAction(regDec)
         regDec.triggered.connect(self.decTabWindow)
@@ -705,6 +718,12 @@ class mainWindow(QMainWindow):
         self.tableAng = QTableView()
         #Controlez la terminarea lucrarilor ca nu e deschis registru autorizatii
         self.erContrAl = False
+
+        # Multiprossesing run
+        worker = Worker()
+        self.threadpool = QThreadPool()
+        self.threadpool.start(worker)
+        worker.signal.finished.connect(self.msCerere)
 
         self.intTrig()
 
@@ -3199,8 +3218,13 @@ class mainWindow(QMainWindow):
         self.secMB.setDefaultButton(QMessageBox.Cancel)
 
     def msCerere(self):
-        self.msSecCall("Aveti cerere la pregatire")
-
+        if self.angDoc["position"] == "Dispecer":
+            self.resetCall("Aveti o cerere in registru de DS/AL.\n"
+                           "Apasati 'Ok', daca doriti sa o vedeti!")
+            if self.secMB.exec() == QMessageBox.Ok:
+                self.centrAlPop()
+            else:
+                self.secMB.close()
 
     def resetTrig(self):
         self.resetCall("Toate datele din cimpuri vor fi sterse!")
@@ -3210,12 +3234,12 @@ class mainWindow(QMainWindow):
             self.secMB.close()
 
     # Multiprossesing:
-    def centrAlThread(self):
-        worker = Worker()
-        self.threadpool = QThreadPool()
-        self.threadpool.start(worker)
-        worker.signal.finished.connect(self.msCerere)
-        self.centrAlPop()
+    # def centrAlThread(self):
+    #     worker = Worker()
+    #     self.threadpool = QThreadPool()
+    #     self.threadpool.start(worker)
+    #     worker.signal.finished.connect(self.msCerere)
+    #     self.centrAlPop()
 
     #Functie populez Biroul dispecerului cu Autorizatie
     def centrAlPop(self):
@@ -3630,7 +3654,7 @@ class mainWindow(QMainWindow):
             pyDateTime = datetime.datetime.now()
             self.data.at[self.modRow, 11] = \
                 "Executat: " + self.uCombo.currentText() + "\n" + pyDateTime.strftime("%d.%m.%y")
-            self.db.deranjamente.update_one({
+            self.db.der_app_deranj.update_one({
                 "nr_ordine": self.data.at[self.modRow, 1]
             }, {
                 "$set": {
@@ -3839,7 +3863,7 @@ class mainWindow(QMainWindow):
                                                     "\n" + pyDateTime.strftime("%d.%m.%y")
         else:
             self.data.at[self.modRow, 10] = self.data.at[self.modRow, 10] + "\n" + self.nameFMenu
-        self.db.deranjamente.update_one({
+        self.db.der_app_deranj.update_one({
                 "nr_ordine": self.data.at[self.modRow, 1]
             }, {
                 "$set": {
@@ -5668,15 +5692,18 @@ class mainWindow(QMainWindow):
             # self.anWindow.show()
 
     def deranjFunc(self):
+        for i in self.db.der_app_deranj.find().sort("_id", -1).limit(1):
+            self.nrDeranj = int(i["id"]) + 1
         if self.ptLine.text() == "PT":
             self.ptLine.setText("")
         if self.ptFidLine.text() == "Fider nr.":
             self.ptFidLine.setText("")
         self.abrOficii()
         pyDateTime = datetime.datetime.now()
-        self.db.deranjamente.insert_one({
+        self.db.der_app_deranj.insert_one({
+            "id": self.nrDeranj,
             "oficiul": self.ofVar,
-            "nr_ordine": str(self.db.deranjamente.estimated_document_count() + 1),
+            "nr_ordine": str(self.nrDeranj),
             "transmis": self.sfLine.text(),
             "sector": self.sectCombo.currentText(),
             "instalatia": self.instalatiaCombo.currentText(),
@@ -5688,6 +5715,7 @@ class mainWindow(QMainWindow):
             "responsabil": "Semnatura",
             "starea": "Neexecutat"
         })
+        # self.db.der_app_deranj.find().sort()
         self.dialBox.close()
         self.deranjPop()
 
@@ -5809,12 +5837,14 @@ class mainWindow(QMainWindow):
         if self.deranjControlPop == True:
             self.tabWindowDeranj.close()
 
-        self.data = pd.DataFrame(self.db.deranjamente.find({}, {"_id": 0}))
-        self.data.columns = range(12)
+        self.data = pd.DataFrame(self.db.der_app_deranj.find({}, {"_id": 0}))
+        myColumn = self.data.pop("id")
+        self.data.insert(12, "id", myColumn)
+        self.data.columns = range(13)
         # print(self.data)
         self.data.sort_index(ascending=False, inplace=True, ignore_index=True)
         header = ["Oficiul", "Nr.", "Transmis", "Sectorul", "Instalatia", "Fider 10kV", "PT", "Fider 0,4kV",
-                  "Continutul", "Data, ora", "Semnatura, Responsabil", "Starea"]
+                  "Continutul", "Data, ora", "Semnatura, Responsabil", "Starea", "id"]
 
         self.tableDeranj = QTableView()
         self.model = TableModelDeranj(self.data, header)
@@ -6090,9 +6120,8 @@ class mainWindow(QMainWindow):
             self.angDoc = self.angajati.find_one({"name": self.uCombo.currentText()})
             if self.angDoc["nr_tabel"] == self.psText.text():
                 self.setWindowTitle('Biroul dispecerului    ' + self.nameFMenu.upper())
-                # bar = self.menuBar()
-                # self.numeMen = bar.addMenu(self.nameFMenu)
                 self.dialInt.close()
+
                 global closeApp
                 closeApp = False
             else:
@@ -6122,6 +6151,7 @@ class mainWindow(QMainWindow):
             self.tabWindDec.close()
         if self.anControl:
             self.anWindow.close()
+
         self.intTrig()
 
     def angFunc(self):
