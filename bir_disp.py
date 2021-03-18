@@ -881,7 +881,7 @@ class mainWindow(QMainWindow):
             return "Riscani"
 
     def lucruLineCh(self):
-        if self.lucrLine.currentText() == "Schimbare contor" or \
+        if self.lucrLine.currentText() == "Schimbare contor, consumator non-casnic" or \
                 self.lucrLine.currentText() == "Deconectarea, reconectarea consumatorilor":
             self.masLine_1.setText("Deconectati sarcina. Lucrarile se efectuiaza folosind mijloace individuale de protectie;")
         else:
