@@ -10,13 +10,13 @@ splash.show()
 splash.showMessage("Loading...")
 app.processEvents()
 
-from PySide2.QtGui import QIcon, QBrush, QColor, QFont, QPainter, QRegExpValidator, QMovie, QPalette
+from PySide2.QtGui import QIcon, QBrush, QColor, QFont, QPainter, QRegExpValidator
 from PySide2.QtCore import QAbstractTableModel, Qt, QRegExp, QSize, QThreadPool, Signal, QObject, QRunnable
 from PySide2.QtWidgets import QMdiSubWindow, QLineEdit, QMainWindow, QMdiArea, \
-    QDesktopWidget, QMenu, QAction, QComboBox, QLabel, QFrame, QVBoxLayout, QHBoxLayout, QSplitter, \
+    QMenu, QAction, QComboBox, QLabel, QFrame, QVBoxLayout, QHBoxLayout, QSplitter, \
     QTableView, QAbstractItemView, QDialog, QCompleter, QGridLayout, QPushButton, QFileDialog, \
-    QMessageBox, QProgressBar, QWidget, QTextEdit, QCheckBox, QStatusBar, QCalendarWidget, \
-    QProgressDialog
+    QMessageBox, QTextEdit, QCheckBox, QCalendarWidget
+
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment
 from PySide2.QtCharts import QtCharts
@@ -24,6 +24,7 @@ from qtwidgets import PasswordEdit
 from pymongo import MongoClient
 from docx import Document
 from docx2pdf import convert
+from playsound import playsound
 import pandas as pd
 import pymongo
 import re
@@ -570,6 +571,13 @@ class Worker(QRunnable):
                 or change['admitere'] == 'Cerere la admitere' \
                 or change['terminare'] == 'Cerere la terminare':
                 self.signal.finished.emit()
+
+class WorkerSound(QRunnable):
+    signalSound = WorkerSignal()
+
+    def run(self):
+        while elSound:
+            playsound('Sources/Sounds/cerere.mp3')
 
 #Clasul principal
 class mainWindow(QMainWindow):
@@ -3218,11 +3226,19 @@ class mainWindow(QMainWindow):
         self.secMB.setDefaultButton(QMessageBox.Cancel)
 
     def msCerere(self):
+        global elSound
+        elSound = True
+        workerSound = WorkerSound()
+        self.threadpoolSound = QThreadPool()
+        self.threadpoolSound.start(workerSound)
+        # workerSound.signalSound.finished.connect(self.myPlay)
+
         if self.angDoc["position"] == "Dispecer":
             self.resetCall("Aveti o cerere in registru de DS/AL.\n"
                            "Apasati 'Ok', daca doriti sa o vedeti!")
             if self.secMB.exec() == QMessageBox.Ok:
                 self.centrAlPop()
+                elSound = False
             else:
                 self.secMB.close()
 
@@ -3233,13 +3249,10 @@ class mainWindow(QMainWindow):
         else:
             self.secMB.close()
 
-    # Multiprossesing:
-    # def centrAlThread(self):
-    #     worker = Worker()
-    #     self.threadpool = QThreadPool()
-    #     self.threadpool.start(worker)
-    #     worker.signal.finished.connect(self.msCerere)
-    #     self.centrAlPop()
+    # def msCerereThread(self):
+    #     Thread(target=self.myPlay).start()
+    #     Thread(target=self.msCerere).start()
+
 
     #Functie populez Biroul dispecerului cu Autorizatie
     def centrAlPop(self):
