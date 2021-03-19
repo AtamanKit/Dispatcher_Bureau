@@ -576,6 +576,9 @@ class WorkerSound(QRunnable):
     signalSound = WorkerSignal()
 
     def run(self):
+        # print(elSoundContr)
+        global elSoundContr
+        elSoundContr = False
         while elSound:
             playsound('Sources/Sounds/cerere.mp3')
 
@@ -3225,22 +3228,27 @@ class mainWindow(QMainWindow):
         self.secMB.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
         self.secMB.setDefaultButton(QMessageBox.Cancel)
 
-    def msCerere(self):
-        global elSound
-        elSound = True
-        workerSound = WorkerSound()
-        self.threadpoolSound = QThreadPool()
-        self.threadpoolSound.start(workerSound)
-        # workerSound.signalSound.finished.connect(self.myPlay)
+    global elSoundContr
+    elSoundContr = True
 
-        if self.angDoc["position"] == "Dispecer":
-            self.resetCall("Aveti o cerere in registru de DS/AL.\n"
-                           "Apasati 'Ok', daca doriti sa o vedeti!")
-            if self.secMB.exec() == QMessageBox.Ok:
-                self.centrAlPop()
-                elSound = False
-            else:
-                self.secMB.close()
+    def msCerere(self):
+        if elSoundContr:
+            global elSound
+            elSound = True
+
+            workerSound = WorkerSound()
+            self.threadpoolSound = QThreadPool()
+            self.threadpoolSound.start(workerSound)
+            # workerSound.signalSound.finished.connect(self.myPlay)
+
+            if self.angDoc["position"] == "Dispecer":
+                self.resetCall("Aveti o cerere in registru de DS/AL.\n"
+                               "Apasati 'Ok', daca doriti sa o vedeti!")
+                if self.secMB.exec() == QMessageBox.Ok:
+                    self.centrAlPop()
+                    elSound = False
+                else:
+                    self.secMB.close()
 
     def resetTrig(self):
         self.resetCall("Toate datele din cimpuri vor fi sterse!")
@@ -3256,6 +3264,9 @@ class mainWindow(QMainWindow):
 
     #Functie populez Biroul dispecerului cu Autorizatie
     def centrAlPop(self):
+
+        global elSoundContr
+        elSoundContr = True
 
         if self.tabWindowControl == True:
             self.tabWindow.close()
