@@ -16,7 +16,6 @@ from PySide2.QtWidgets import QMdiSubWindow, QLineEdit, QMainWindow, QMdiArea, \
     QMenu, QAction, QComboBox, QLabel, QFrame, QVBoxLayout, QHBoxLayout, QSplitter, \
     QTableView, QAbstractItemView, QDialog, QCompleter, QGridLayout, QPushButton, QFileDialog, \
     QMessageBox, QTextEdit, QCheckBox, QCalendarWidget
-
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment
 from PySide2.QtCharts import QtCharts
@@ -25,6 +24,7 @@ from pymongo import MongoClient
 from docx import Document
 from docx2pdf import convert
 from playsound import playsound
+from twilio.rest import Client
 import pandas as pd
 import pymongo
 import re
@@ -573,12 +573,11 @@ class Worker(QRunnable):
                 self.signal.finished.emit()
 
 class WorkerSound(QRunnable):
-    signalSound = WorkerSignal()
 
     def run(self):
-        # print(elSoundContr)
         global elSoundContr
         elSoundContr = False
+
         while elSound:
             playsound('Sources/Sounds/cerere.mp3')
 
@@ -1912,16 +1911,6 @@ class mainWindow(QMainWindow):
             self.ofCombo.addItems(self.ofList)
             self.ofCombo.currentTextChanged.connect(self.loadAng)
 
-            hbox = QHBoxLayout()
-            hbox.addWidget(ofLabel)
-            hbox.addWidget(self.ofCombo)
-            ofFrame.setLayout(hbox)
-
-        #User Frame
-            uFrame = QFrame()
-            uFrame.setFrameShape(QFrame.StyledPanel)
-            uFrame.setStyleSheet("background-color: #315240; color: #e3e3e3")
-
             self.loadMongoUN()
 
 
@@ -1937,27 +1926,62 @@ class mainWindow(QMainWindow):
             self.uCombo.setCurrentText("Alege:")
             self.uCombo.currentTextChanged.connect(self.menuName)
 
-
             hbox = QHBoxLayout()
+            hbox.addWidget(ofLabel)
+            hbox.addWidget(self.ofCombo)
             hbox.addWidget(uLabel)
             hbox.addWidget(self.uCombo)
-            uFrame.setLayout(hbox)
+            ofFrame.setLayout(hbox)
+
+        #Auth Frame button
+            self.authBtFrame = QFrame()
+            self.authBtFrame.setFrameShape(QFrame.StyledPanel)
+
+            self.btAuth = QPushButton("Generati cod de autentificare")
+            self.btAuth.setStyleSheet('color: #e3e3e3')
+            self.btAuth.clicked.connect(self.authFunc)
+
+            hbox = QHBoxLayout()
+            hbox.addWidget(self.btAuth)
+            self.authBtFrame.setLayout(hbox)
+
+        # Auth Frame
+            self.authFrame = QFrame()
+            self.authFrame.setFrameShape(QFrame.StyledPanel)
+            self.authFrame.setStyleSheet("background-color: #315240; color: #e3e3e3")
+
+            authLabel = QLabel("Introduceti codul de autentificare:")
+            self.authLine = QLineEdit()
+            self.authLine.setStyleSheet('background-color: #ffffff; color: #050505')
+            self.authLine.setFixedWidth(100)
+
+            hbox = QHBoxLayout()
+            hbox.addWidget(authLabel)
+            hbox.addWidget(self.authLine)
+            self.authFrame.setLayout(hbox)
 
         # User Frame
-            psFrame = QFrame()
-            psFrame.setFrameShape(QFrame.StyledPanel)
-            psFrame.setStyleSheet("background-color: #315240; color: #e3e3e3")
+            self.psFrame = QFrame()
+            self.psFrame.setFrameShape(QFrame.StyledPanel)
+            self.psFrame.setStyleSheet("background-color: #535453; color: #e3e3e3")
 
-            psLabel = QLabel("Parola:")
+            self.tableCheck = QCheckBox("Alegeti obtiunea numarului de tabel")
+            self.tableCheck.stateChanged.connect(self.tbCheckFunc)
+
+            psLabel = QLabel("Introduceti numarul de tabel:")
             self.psText = PasswordEdit()
             self.psText.setStyleSheet('background-color: #ffffff; color: #050505')
             self.psText.setFixedWidth(100)
+            self.psText.setEnabled(False)
         # self.psText.setEchoMode(QLineEdit.Password)
 
             hbox = QHBoxLayout()
+            vbox = QVBoxLayout()
+            vbox.addWidget(self.tableCheck)
             hbox.addWidget(psLabel)
             hbox.addWidget(self.psText)
-            psFrame.setLayout(hbox)
+            vbox.addLayout(hbox)
+            self.psFrame.setLayout(vbox)
 
         # Buttons Section (butoanele "Ok", "Cancel"
             btFrame = QFrame()
@@ -1978,8 +2002,9 @@ class mainWindow(QMainWindow):
 
             vbox = QVBoxLayout()
             vbox.addWidget(ofFrame)
-            vbox.addWidget(uFrame)
-            vbox.addWidget(psFrame)
+            vbox.addWidget(self.authBtFrame)
+            vbox.addWidget(self.authFrame)
+            vbox.addWidget(self.psFrame)
             vbox.addWidget(btFrame)
             self.dialInt.setLayout(vbox)
 
@@ -1988,6 +2013,24 @@ class mainWindow(QMainWindow):
             # doar pentru prima care are self.tabel
             self.table = QTableView()
             self.tableDeranj = QTableView()
+
+    def tbCheckFunc(self):
+        if self.tableCheck.isChecked() == True:
+            self.psFrame.setStyleSheet("background-color: #315240; color: #e3e3e3")
+            self.psText.setEnabled(True)
+            self.authFrame.setStyleSheet("background-color: #535453; color: #e3e3e3")
+            self.authLine.setEnabled(False)
+            self.authBtFrame.setStyleSheet('background-color: #535453;')
+            self.btAuth.setEnabled(False)
+            self.btAuth.setStyleSheet('background-color: #535453')
+        else:
+            self.psFrame.setStyleSheet("background-color: #535453; color: #e3e3e3")
+            self.psText.setEnabled(False)
+            self.authFrame.setStyleSheet("background-color: #315240; color: #e3e3e3")
+            self.authLine.setEnabled(True)
+            self.authBtFrame.setStyleSheet('background-color: #424242;')
+            self.btAuth.setEnabled(True)
+            self.btAuth.setStyleSheet('background-color: #424242; color: #e3e3e3')
 
     def menuName(self):
         try:
@@ -3239,16 +3282,20 @@ class mainWindow(QMainWindow):
             workerSound = WorkerSound()
             self.threadpoolSound = QThreadPool()
             self.threadpoolSound.start(workerSound)
-            # workerSound.signalSound.finished.connect(self.myPlay)
+            # self.signalSound.finished.connect(self.myStop)
 
             if self.angDoc["position"] == "Dispecer":
                 self.resetCall("Aveti o cerere in registru de DS/AL.\n"
                                "Apasati 'Ok', daca doriti sa o vedeti!")
                 if self.secMB.exec() == QMessageBox.Ok:
                     self.centrAlPop()
+                    # self.myStop()
                     elSound = False
                 else:
                     self.secMB.close()
+
+    # def myStop(self):
+    #     pass
 
     def resetTrig(self):
         self.resetCall("Toate datele din cimpuri vor fi sterse!")
@@ -3264,7 +3311,6 @@ class mainWindow(QMainWindow):
 
     #Functie populez Biroul dispecerului cu Autorizatie
     def centrAlPop(self):
-
         global elSoundContr
         elSoundContr = True
 
@@ -6140,19 +6186,60 @@ class mainWindow(QMainWindow):
         self.decTabWindow()
 
     def okPass(self):
+        self.angDoc = self.angajati.find_one({"name": self.uCombo.currentText()})
+        if self.tableCheck.isChecked() == True:
+            try:
+                if self.angDoc["nr_tabel"] == self.psText.text():
+                    self.setWindowTitle('Biroul dispecerului    ' + self.nameFMenu.upper())
+                    self.dialInt.close()
+
+                    global closeApp
+                    closeApp = False
+                else:
+                    self.msSecCall("Nu ati introdus corect parola sau userul!")
+                self.passControl = True
+            except TypeError:
+                self.msSecCall("Nu ati introdus corect parola sau userul!")
+        else:
+            try:
+                try:
+                    result = self.verify.verification_checks.create(to=self.myTel, code=self.authLine.text())
+                    if result.status == 'approved':
+                        self.setWindowTitle('Biroul dispecerului    ' + self.nameFMenu.upper())
+                        self.dialInt.close()
+
+                        closeApp = False
+                    else:
+                        self.msSecCall("Nu ati introdus corect codul de autentificare!")
+                    self.passControl = True
+                except TypeError:
+                    self.msSecCall("Nu ati introdus corect userul!")
+            except AttributeError:
+                self.msSecCall("Generati mai intii codul de autentificare!")
+
+    def twilioFunc(self, telArg):
+        client = Client('AC1bd4197015848ea29a103e3a14f6a2ff', '662b14ab4bac80c79b53342d15a05746')
+        self.verify = client.verify.services('VAe4432b212966dcf9f009e5e77f35c1d0')
+        self.verify.verifications.create(to=telArg, channel='sms')
+
+    def authFunc(self):
         try:
             self.angDoc = self.angajati.find_one({"name": self.uCombo.currentText()})
-            if self.angDoc["nr_tabel"] == self.psText.text():
-                self.setWindowTitle('Biroul dispecerului    ' + self.nameFMenu.upper())
-                self.dialInt.close()
-
-                global closeApp
-                closeApp = False
+            if self.angDoc['telefon_serv'] != "" or self.angDoc['telefon_pers'] != "":
+                if re.match('[+]373 \d\d\d\d\d\d\d\d', self.angDoc['telefon_serv']):
+                    self.myTel = self.angDoc['telefon_serv']
+                    self.twilioFunc(self.myTel)
+                elif re.match('[+]373 \d\d\d\d\d\d\d\d', self.angDoc['telefon_pers']):
+                    self.myTel = self.angDoc['telefon_pers']
+                    self.twilioFunc(self.myTel)
+                else:
+                    self.msSecCall("Nici un numar de telefon al userului nu\n"
+                                   "corespunde formatului +373 XXXXXXXX!")
             else:
-                self.msSecCall("Nu ati introdus corect parola sau userul!")
-            self.passControl = True
+                self.msSecCall("Pentru utilizatorul dat nu exista numar de telefon!")
         except TypeError:
-            self.msSecCall("Nu ati introdus corect parola sau userul!")
+            self.msSecCall("Nu ati introdus corect userul\n"
+                           "sau nu exista un asemenea utilizator!")
 
     def cancelPass(self):
         self.dialInt.close()
