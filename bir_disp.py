@@ -101,7 +101,7 @@ class TableModel(QAbstractTableModel):
             # value_minus = self._data.iloc[index.row(), index.column() - 1]
             matched = re.match("\d\d.\d\d.\d\d\d\d \d\d:\d\d", str(value))
             matchedShort = re.match("\d\d.\d\d.\d\d \d\d:\d\d", str(value))
-            matchedDelta = re.match("\d:\d\d:\d\d", str(value))
+            # matchedDelta = re.match("\d:\d\d:\d\d", str(value))
             matchedPT = re.search("PT\d", str(value))
             matchedMont = re.search("/mont", str(value))
             matchedAdm = re.search("Admitere:", str(value))
@@ -117,7 +117,10 @@ class TableModel(QAbstractTableModel):
             matchedConf = re.search("Confirmat:", str(value))
             matchedCerere = re.search("Cerere", str(value))
             matched2lines = re.search("--", str(value))
-            if str(value) == "Nou inregistrata" or str(value) == "Neexecutat" or matchedCerere:
+            matchedDepasit = re.search("Depasit", str(value))
+            matchedIncadrat = re.search("Incadrat", str(value))
+            if str(value) == "Nou inregistrata" or str(value) == "Neexecutat" or matchedCerere or \
+                    matchedDepasit:
                 # print(str(valuePlus))
                 return QColor(179, 48, 48)
             elif bool(matchedShort) or bool(matchedRef)\
@@ -143,7 +146,7 @@ class TableModel(QAbstractTableModel):
                 return QColor(150, 150, 150)
             elif str(value) == "RS":
                 return QColor(130, 100, 200)
-            elif bool(matchedDelta):
+            elif bool(matchedIncadrat):
                 return QColor(70, 122, 78)
             elif bool(matchedMont):
                 return QColor(79, 74, 128)
@@ -173,10 +176,11 @@ class TableModel(QAbstractTableModel):
             matchedTerm = re.search("Terminat:", str(value))
             matched2lines = re.search("--", str(value))
             matchedCerere = re.search("Cerere", str(value))
+            matchedDepasit = re.search("Depasit", str(value))
             if str(value) == "Nou inregistrata" or bool(matchedRef)\
                     or bool(matchedShort) or str(value) == "Neexecutat"\
                     or bool(matchedPreg) or bool(matchedTerm) or matched2lines \
-                    or matchedCerere:
+                    or matchedCerere or matchedDepasit:
                 return QColor(255, 255, 255)
             # elif str(value) == "Programat":
             #     return QColor(255, 255, 255)
@@ -2660,24 +2664,24 @@ class mainWindow(QMainWindow):
         hbox.addWidget(self.cauzaCombo)
         cauzaFrame.setLayout(hbox)
 
-        termenFrame = QFrame()
-        termenFrame.setFrameShape(QFrame.StyledPanel)
-        termenFrame.setStyleSheet('background-color: #314652;')
-
-        termenLabel = QLabel()
-        termenLabel.setText('Termen reglementat:')
-        termenLabel.setStyleSheet('color: #e3e3e3')
-
-        termenList = ['Incadrat', 'Neincadrat']
-        self.termenCombo = QComboBox()
-        self.termenCombo.setStyleSheet('background-color: #314652; color: #e3e3e3;  height:20')
-        self.termenCombo.setFixedWidth(140)
-        self.termenCombo.addItems(termenList)
-
-        hbox = QHBoxLayout()
-        hbox.addWidget(termenLabel)
-        hbox.addWidget(self.termenCombo)
-        termenFrame.setLayout(hbox)
+        # termenFrame = QFrame()
+        # termenFrame.setFrameShape(QFrame.StyledPanel)
+        # termenFrame.setStyleSheet('background-color: #314652;')
+        #
+        # termenLabel = QLabel()
+        # termenLabel.setText('Termen reglementat:')
+        # termenLabel.setStyleSheet('color: #e3e3e3')
+        #
+        # termenList = ['Incadrat', 'Neincadrat']
+        # self.termenCombo = QComboBox()
+        # self.termenCombo.setStyleSheet('background-color: #314652; color: #e3e3e3;  height:20')
+        # self.termenCombo.setFixedWidth(140)
+        # self.termenCombo.addItems(termenList)
+        #
+        # hbox = QHBoxLayout()
+        # hbox.addWidget(termenLabel)
+        # hbox.addWidget(self.termenCombo)
+        # termenFrame.setLayout(hbox)
 
         # Buttons Section (butoanele "Ok", "Cancel"
         btFrame = QFrame()
@@ -2703,7 +2707,7 @@ class mainWindow(QMainWindow):
         grid.addWidget(ptFrame, 2, 0)
         grid.addWidget(dtFrame, 3, 0)
         grid.addWidget(cauzaFrame, 4, 0)
-        grid.addWidget(termenFrame, 5, 0)
+        # grid.addWidget(termenFrame, 5, 0)
         grid.addWidget(btFrame, 6, 0)
 
         self.dialBox.exec()
@@ -3289,10 +3293,10 @@ class mainWindow(QMainWindow):
                                "Apasati 'Ok', daca doriti sa o vedeti!")
                 if self.secMB.exec() == QMessageBox.Ok:
                     self.centrAlPop()
-                    # self.myStop()
                     elSound = False
                 else:
                     self.secMB.close()
+                    elSound = False
 
     # def myStop(self):
     #     pass
@@ -3578,9 +3582,10 @@ class mainWindow(QMainWindow):
         self.tableDecPt.setStyleSheet("Background-color: rgb(200, 200, 200)")
         self.tableDecPt.setSelectionBehavior(QAbstractItemView.SelectRows)
         for i in range(0, 13):
-            self.tableDecPt.setColumnWidth(i, 140)
+            self.tableDecPt.setColumnWidth(i, 135)
         self.tableDecPt.setColumnWidth(4, 160)
         self.tableDecPt.setColumnWidth(5, 160)
+        self.tableDecPt.setColumnWidth(12, 200)
         self.tableDecPt.verticalHeader().hide()
 
         #Creez a II-lea tabel
@@ -5061,10 +5066,6 @@ class mainWindow(QMainWindow):
                 fid_nr = ""
             else:
                 fid_nr = self.ptFidLine.text()
-            if self.memEchLine.text() != "":
-                mem_ech = "Formatia: " + self.memEchLine.text()
-            else:
-                mem_ech = ""
 
         else:
             deconect = self.decCombo.currentText()
@@ -5085,6 +5086,11 @@ class mainWindow(QMainWindow):
                 "\n" + myDateTime.strftime("%d.%m.%y")
         else:
             starea = "Nou inregistrata"
+
+        if self.memEchLine.text() != "":
+            mem_ech = "Formatia: " + self.memEchLine.text()
+        else:
+            mem_ech = ""
 
             # Calculez localitatile
         for i in range(2, self.wsPt.max_row + 1):
@@ -5161,7 +5167,7 @@ class mainWindow(QMainWindow):
                         "fid_nr": self.ptFidLine.text(),
                         "lucrarile": self.lucrLine.currentText(),
                         "sef": self.sfLine.text(),
-                        "mem_ech": "",
+                        "mem_ech": mem_ech,
                         "emitent": emitent,
                         "cu_dec": deconect,
                         "mas_teh": mas_teh,
@@ -6006,11 +6012,81 @@ class mainWindow(QMainWindow):
 
 
     def decFunc(self):
-
         self.dtContrDecZl()
         self.dtAnAnual()
         self.abrOficii()
 
+        # Calculez diferenta orelor
+        valueDate_5 = self.dtLine.text()
+        valueDate_6 = datetime.datetime.now().strftime("%d.%m.%y %H:%M")
+        strToDate_5 = datetime.datetime.strptime(valueDate_5, "%d.%m.%y %H:%M")
+        strToDate_6 = datetime.datetime.strptime(valueDate_6, "%d.%m.%y %H:%M")
+        delta_6_5 = strToDate_6 - strToDate_5
+        myList = str(delta_6_5).split()
+        try:
+            if int(myList[0]):
+                myDateSplit = myList[2].split(":")
+                myDayPlus = 24 * int(myList[0]) + int(myDateSplit[0])
+                myDateStr = str(myDayPlus) + ":" + myDateSplit[1] + ":" + myDateSplit[2]
+                myDeltaHour = myDateStr
+        except ValueError:
+            myDeltaHour = str(delta_6_5)
+
+        #Calculez numarul de consumatori casnici si economici pe faza,
+        #Determin localitatea
+        for i in range(2, self.wsPt.max_row + 1):
+            if self.wsPt.cell(row=i, column=1).value == self.ptLine.text():
+                self.totNrCas = int(self.wsPt.cell(row=i, column=4).value)
+                self.fazaNrCas = round(self.totNrCas / 9)
+                if self.fazaNrCas > 25:
+                    self.fazaNrCas = random.randrange(20, 30)
+
+                self.totNrEc = self.wsPt.cell(row=i, column=5).value
+                if self.totNrEc <= 2 and self.totNrCas == 0:
+                    self.fazaNrEc = 1
+                elif self.totNrEc > 12:
+                    self.fazaNrEc = random.randrange(1, 3)
+                else:
+                    self.fazaNrEc = round(self.totNrEc / 9)
+
+                myLocalitate = self.wsPt.cell(row=i, column=2).value
+
+                #Determin incadrarea termenului urban, rural
+                myList = myDeltaHour.split(":")
+                difH = ""
+                if bool(re.search("or[.]", myLocalitate)):
+                    if int(myList[0]) >= 6:
+                        difH = int(myList[0]) - 6
+                else:
+                    if int(myList[0]) >= 12:
+                        difH = int(myList[0]) - 12
+                if difH != "":
+                    termText = "Depasit cu: " + str(difH) + "H " + myList[1] + "min."
+                else:
+                    termText = "Incadrat"
+
+        #Working with MongoDB
+        for i in self.db.deconect_app_deconect.find().sort("_id", -1).limit(1):
+            self.nrDec = int(i["id"]) + 1
+
+        self.db.deconect_app_deconect.insert_one({
+            "id": self.nrDec,
+            "oficiul": self.ofVar,
+            "nr_ordine": self.nrDec,
+            "pt": self.ptLine.text(),
+            "fid_04kv": self.ptFidLine.text(),
+            "data_dec": self.dtLine.text(),
+            "data_conect": datetime.datetime.now().strftime("%d.%m.%y %H:%M"),
+            "durata": myDeltaHour,
+            "cons_cas": str(self.fazaNrCas),
+            "cons_ec": str(self.fazaNrEc),
+            "total": str(self.fazaNrCas + self.fazaNrEc),
+            "localitate": myLocalitate,
+            "cauza": self.cauzaCombo.currentText(),
+            "termen": termText,
+        })
+
+        #Working with excel
         myMaxRow = self.wsDecPT.max_row + 1
 
         if self.wsDecPT.cell(row=2, column=8).value == None:
@@ -6032,57 +6108,23 @@ class mainWindow(QMainWindow):
         self.wsDecPT.cell(row=myMaxRow, column=6).value = datetime.datetime.now().strftime("%d.%m.%y %H:%M")
         self.wsDecPT.cell(row=myMaxRow, column=6).alignment = \
             Alignment(horizontal="center", vertical="center")
-        # Calculez si pun orele diferenta lor
-        valueDate_6 = self.wsDecPT.cell(row=myMaxRow, column=6).value
-        valueDate_5 = self.wsDecPT.cell(row=myMaxRow, column=5).value
-        strToDate_6 = datetime.datetime.strptime(valueDate_6, "%d.%m.%y %H:%M")
-        strToDate_5 = datetime.datetime.strptime(valueDate_5, "%d.%m.%y %H:%M")
-        delta_6_5 = strToDate_6 - strToDate_5
-        myList = str(delta_6_5).split()
-        try:
-            if int(myList[0]):
-                myDateSplit = myList[2].split(":")
-                myDayPlus = 24 * int(myList[0]) + int(myDateSplit[0])
-                myDateStr = str(myDayPlus) + ":" + myDateSplit[1] + ":" + myDateSplit[2]
-                myDeltaHour = myDateStr
-        except ValueError:
-            myDeltaHour = str(delta_6_5)
         self.wsDecPT.cell(row=myMaxRow, column=7).value = myDeltaHour
         self.wsDecPT.cell(row=myMaxRow, column=7).alignment = \
             Alignment(horizontal="center", vertical="center")
-
-        # Calculez si pun numarul de consumatori si localitatea
-        for i in range(2, self.wsPt.max_row + 1):
-            if self.wsPt.cell(row=i, column=1).value == self.wsDecPT.cell(row=myMaxRow, column=3).value:
-                self.totNrCas = int(self.wsPt.cell(row=i, column=4).value)
-                self.fazaNrCas = round(self.totNrCas / 9)
-                if self.fazaNrCas > 25:
-                    self.fazaNrCas = random.randrange(20, 30)
-                self.wsDecPT.cell(row=myMaxRow, column=8).value = str(self.fazaNrCas)
-                self.wsDecPT.cell(row=myMaxRow, column=8).alignment = \
-                    Alignment(horizontal="center", vertical="center")
-
-                self.totNrEc = self.wsPt.cell(row=i, column=5).value
-                if self.totNrEc <= 2 and self.totNrCas == 0:
-                    self.fazaNrEc = 1
-                elif self.totNrEc > 12:
-                    self.fazaNrEc = random.randrange(1, 3)
-                else:
-                    self.fazaNrEc = round(self.totNrEc / 9)
-                self.wsDecPT.cell(row=myMaxRow, column=9).value = str(self.fazaNrEc)
-                self.wsDecPT.cell(row=myMaxRow, column=9).alignment = \
-                    Alignment(horizontal="center", vertical="center")
-                self.wsDecPT.cell(row=myMaxRow, column=11).value = \
-                    self.wsPt.cell(row=i, column=2).value
-                myLocalitate = self.wsPt.cell(row=i, column=2).value
-
+        self.wsDecPT.cell(row=myMaxRow, column=8).value = str(self.fazaNrCas)
+        self.wsDecPT.cell(row=myMaxRow, column=8).alignment = \
+            Alignment(horizontal="center", vertical="center")
+        self.wsDecPT.cell(row=myMaxRow, column=9).value = str(self.fazaNrEc)
+        self.wsDecPT.cell(row=myMaxRow, column=9).alignment = \
+            Alignment(horizontal="center", vertical="center")
         self.wsDecPT.cell(row=myMaxRow, column=10).value = \
             str(int(self.wsDecPT.cell(row=myMaxRow, column=8).value) + \
             int(self.wsDecPT.cell(row=myMaxRow, column=9).value))
         self.wsDecPT.cell(row=myMaxRow, column=10).alignment = \
             Alignment(horizontal="center", vertical="center")
+        self.wsDecPT.cell(row=myMaxRow, column=11).value = myLocalitate
         self.wsDecPT.cell(row=myMaxRow, column=12).value = self.cauzaCombo.currentText()
-        self.wsDecPT.cell(row=myMaxRow, column=13).value = self.termenCombo.currentText()
+        self.wsDecPT.cell(row=myMaxRow, column=13).value = termText
         self.wsDecPT.cell(row=myMaxRow, column=13).alignment = \
             Alignment(horizontal="center", vertical="center")
         try:
@@ -6246,6 +6288,7 @@ class mainWindow(QMainWindow):
         self.close()
         global closeApp
         closeApp = True
+        splash.finish(self)
 
     def logOut(self):
         self.passControl = False
