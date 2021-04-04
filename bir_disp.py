@@ -33,6 +33,7 @@ import random
 import webbrowser
 import os.path
 import shutil
+import psycopg2
 
 
 #Working with google API
@@ -617,28 +618,25 @@ class mainWindow(QMainWindow):
         # Menu Create
 
         bar = self.menuBar()
-        fileMenu = bar.addMenu('File')
 
+        fileMenu = bar.addMenu('File')
         newMen = QMenu('New', self)
+        fileMenu.addMenu(newMen)
 
         autSub = QAction('Autorizatie', self)
         newMen.addAction(autSub)
-        fileMenu.addMenu(newMen)
         autSub.triggered.connect(self.alTrig)
 
         disSub = QAction('Dispozitie', self)
         newMen.addAction(disSub)
-        fileMenu.addMenu(newMen)
         disSub.triggered.connect(self.dsTrig)
 
         decSub = QAction('Deconectare neplanificata', self)
         newMen.addAction(decSub)
-        fileMenu.addMenu(newMen)
         decSub.triggered.connect(self.decTrig)
 
         deranjSub = QAction('Deranjament', self)
         newMen.addAction(deranjSub)
-        fileMenu.addMenu(newMen)
         deranjSub.triggered.connect(self.deranjTrig)
 
         setMenu = QAction("Setari", self)
@@ -690,13 +688,17 @@ class mainWindow(QMainWindow):
         angMen.addAction(angDemis)
         angDemis.triggered.connect(self.angDelTrig)
 
-        anMen = bar.addMenu('Analiza')
-        anDec = QAction("Lunara", self)
-        anMen.addAction(anDec)
-        anDec.triggered.connect(self.decAnalizaLun)
-        anualDec = QAction("Anuala", self)
-        anMen.addAction(anualDec)
-        anualDec.triggered.connect(self.decAnalizaAn)
+        rpBar = bar.addMenu('Raport')
+        anualMen = QMenu("Analiza anuala", self)
+        rpBar.addMenu(anualMen)
+
+        anualProg = QAction("Programat", self)
+        anualMen.addAction(anualProg)
+        anualProg.triggered.connect(self.AnualNepr)
+
+        anualNepr = QAction("Neprogramat", self)
+        anualMen.addAction(anualNepr)
+        anualNepr.triggered.connect(self.AnualNepr)
 
         autMen = bar.addMenu('LogIn/Out')
         autIn = QAction("Log In", self)
@@ -766,7 +768,7 @@ class mainWindow(QMainWindow):
 
     def loadMongoUN(self):
         self.loadMongo()
-        self.db = self.client.djUN
+        self.db = self.client.djUN_test
 
     def loadAng(self):
         self.loadAngSec()
@@ -3373,7 +3375,7 @@ class mainWindow(QMainWindow):
         regFrame = QFrame()
         regAlTitle = QLabel()
 
-        regAlTitle.setText("Registru de autorizatii Of.:")
+        regAlTitle.setText("Registru de autorizatii, oficiul:")
         regAlTitle.setStyleSheet("padding-left: 50%; font-size:24px; color:rgb(191, 60, 60)")
         # regAlTitle.move(0, 100)
         # self.loadOficii()
@@ -4687,10 +4689,13 @@ class mainWindow(QMainWindow):
                         self.wsAnAnualP.cell(row=anAnualMaxRow, column=2).value = \
                             self.data.at[self.modRow, 4] + " " + self.data.at[self.modRow, 6]
                         self.wsAnAnualP.cell(row=anAnualMaxRow, column=3).value = \
-                            str(self.wsDecProg.cell(row=myMaxRow, column=13).value + \
-                                self.wsDecProg.cell(row=myMaxRow, column=14).value)
+                            self.data.at[self.modRow, 5]
                         self.wsAnAnualP.cell(row=anAnualMaxRow, column=4).value = \
+                            self.fidNrCas + self.fidNrEc
+                        self.wsAnAnualP.cell(row=anAnualMaxRow, column=5).value = \
                             myDeltaHour
+                        self.wsAnAnualP.cell(row=anAnualMaxRow, column=6).value = \
+                            "1"
                         try:
                             self.wbAnAnual.save(self.fileAnAnual)
                         except PermissionError:
@@ -4892,10 +4897,13 @@ class mainWindow(QMainWindow):
                         self.wsAnAnualN.cell(row=anAnualMaxRow, column=2).value = \
                             self.data.at[self.modRow, 4] + " " +self.data.at[self.modRow, 6]
                         self.wsAnAnualN.cell(row=anAnualMaxRow, column=3).value = \
-                            self.wsDecNeProg.cell(row=self.wsDecNeProg.max_row, column=25).value + \
-                            self.wsDecNeProg.cell(row=self.wsDecNeProg.max_row, column=26).value
+                            self.data.at[self.modRow, 5]
                         self.wsAnAnualN.cell(row=anAnualMaxRow, column=4).value = \
+                            self.fidNrCas + self.fidNrEc
+                        self.wsAnAnualN.cell(row=anAnualMaxRow, column=5).value = \
                             myDeltaHour
+                        self.wsAnAnualN.cell(row=anAnualMaxRow, column=6).value = \
+                            "1"
                         try:
                             self.wbAnAnual.save(self.fileAnAnual)
                         except PermissionError:
@@ -5334,7 +5342,7 @@ class mainWindow(QMainWindow):
         name = self.emLine.text()
         name = name.split()
         name = name[0] + " " + name[1]
-        print(self.angajati.find_one({"name": name})["semnatura_el"])
+        # print(self.angajati.find_one({"name": name})["semnatura_el"])
         try:
             if self.angajati.find_one({"name": name})["semnatura_el"] != "":
                 document.add_picture(self.angajati.find_one({"name": name})["semnatura_el"])
@@ -5521,32 +5529,41 @@ class mainWindow(QMainWindow):
             self.wsRegAl = self.wbRegAl["Registru"]
             self.wsRegAlLink = self.wbRegAl["alLink"]
 
-    def dtAnAnual(self):
-        self.destLoad()
-        if self.wsDest.cell(row=5, column=2).value == None:
-            self.msCall("destinatia ANALIZA ANUALA (excel)!")
-            self.setTrig()
-        else:
-            destPath = self.wsDest.cell(row=5, column=2).value
-            self.myYear = datetime.datetime.now().strftime("%Y")
+    def postgresLoad(self):
+        # self.destLoad()
+        # if self.wsDest.cell(row=5, column=2).value == None:
+        #     self.msCall("destinatia ANALIZA ANUALA (excel)!")
+        #     self.setTrig()
+        # else:
+        #     destPath = self.wsDest.cell(row=5, column=2).value
+        #     self.myYear = datetime.datetime.now().strftime("%Y")
+        #
+        #     if destPath != "":
+        #         self.fileAnAnual = destPath + "/" + "Analiza_anuala " + str(self.myYear) + ".xlsx"
+        #         fielControl = os.path.isfile(self.fileAnAnual)
+        #         if not fielControl:
+        #             myOriginal = os.path.abspath(".") + "/Bundle/Ungheni/Deconectari/Analiza_anuala.xlsx"
+        #             shutil.copyfile(myOriginal, self.fileAnAnual)
+        #
+        #     self.wbAnAnual = load_workbook(self.fileAnAnual)
+        #     self.wsAnAnualP = self.wbAnAnual["Programat"]
+        #     self.wsAnAnualN = self.wbAnAnual["Neprogramat"]
 
-            if destPath != "":
-                self.fileAnAnual = destPath + "/" + "Analiza_anuala " + str(self.myYear) + ".xlsx"
-                fielControl = os.path.isfile(self.fileAnAnual)
-                if not fielControl:
-                    myOriginal = os.path.abspath(".") + "/Bundle/Ungheni/Deconectari/Analiza_anuala.xlsx"
-                    shutil.copyfile(myOriginal, self.fileAnAnual)
+        conn = psycopg2.connect(
+            host = 'localhost',
+            database = 'ungheni',
+            user = 'postgres',
+            password = 'Rodion'
+        )
 
-            self.wbAnAnual = load_workbook(self.fileAnAnual)
-            self.wsAnAnualP = self.wbAnAnual["Programat"]
-            self.wsAnAnualN = self.wbAnAnual["Neprogramat"]
+        self.cur = conn.cursor()
 
     def ofChangeAnaliza(self):
         # self.abrOficii()
         if not self.ofChangeContrSec:
             self.ofChangeContr = True
             self.analizaContr = True
-            self.ofAfterCh = self.ofCombo.currentText()
+            self.ofAfterCh = self.abrOficiiSec(self.ofCombo.currentText())
             self.decAnaliza()
             self.ofChangeContrSec = False
 
@@ -5562,18 +5579,120 @@ class mainWindow(QMainWindow):
         self.analizaAnContr = 0
         self.decAnaliza()
 
-    def decAnalizaAn(self):
-        self.dtAnAnual()
-        self.ofChangeContr = False
-        self.ofChangeContrSec = False
-        self.analizaContr = True
-        self.analizaAnContr = 1
-        self.decAnaliza()
+    # def decAnalizaAn(self):
+    #     self.postgresLoad()
+    #     self.ofChangeContr = False
+    #     self.ofChangeContrSec = False
+    #     self.analizaContr = True
+    #     self.analizaAnContr = 1
+    #     self.DecAnFunc()
+    #
+    # def DecAnFunc(self):
+    #     self.cur.execute('SELECT * FROM anlzan21n')
+    #     nepl = self.cur.fetchall()
+    #     self.cur.execute('SELECT * FROM anlzan21p')
+    #     plan = self.cur.fetchall()
+    #     self.cur.close()
+    #
+    #     column_names = ["anlzan21_id", "ociciul", "pt_fider", "nr_consumatori", "ore"]
+    #
+    #     self.tblAnN = pd.DataFrame(nepl, columns=column_names)
+    #     self.tblAnP = pd.DataFrame(plan, columns=column_names)
+    #     print(self.tblAnN)
+
+    def AnualNepr(self):
+        ofList = ["Toate oficiile"]
+        ofList = ofList + self.ofList
+
+        self.ofAnNepr = QComboBox()
+        self.ofAnNepr.addItems(ofList)
+        self.ofAnNepr.setStyleSheet('padding-left:10%; font-size:12px')
+        self.ofAnNepr.setFixedHeight(25)
+        self.ofAnNepr.setFixedWidth(100)
+        self.ofAnNepr.currentTextChanged.connect(self.AnNeprFunc)
+        self.postgresLoad()
+
+        self.AnNeprFunc()
+
+    def AnNeprFunc(self):
+        if self.ofAnNepr.currentText() == "Toate oficiile":
+            self.cur.execute("SELECT * FROM anlzan21n")
+        else:
+            self.cur.execute("SELECT * FROM anlzan21n WHERE oficiul='{}'".format(self.abrOficiiSec(self.ofAnNepr.currentText())))
+        tuples = self.cur.fetchall()
+        column_names = ["anlzan21n_id", "oficiul", "pt_fider", "nr_consumatori", "ore"]
+        data = pd.DataFrame(tuples, columns=column_names)
+        data.sort_values(by="pt_fider", inplace=True, ignore_index=True)
+        data.insert(5, "nr_dec", 1)
+        for i in range(1, len(data)):
+            if data.at[i, "pt_fider"] == data.at[i-1, "pt_fider"]:
+                data.at[i, "nr_dec"] = data.at[i, "nr_dec"] + data.at[i-1, "nr_dec"]
+
+                myTime = datetime.datetime.strptime(data.at[i, "ore"], '%H:%M:%S')
+                myTimeMinus = datetime.datetime.strptime(data.at[i-1, "ore"], '%H:%M:%S')
+                delta = datetime.timedelta(
+                    hours=myTimeMinus.hour,
+                    minutes=myTimeMinus.minute,
+                )
+                myTimeDelta = myTime + delta
+                data.at[i, "ore"] = datetime.datetime.strftime(myTimeDelta, '%H:%M:%S')
+
+                wb = load_workbook("Bundle/" + self.ofAnNepr.currentText() + "/PT_" +\
+                                   self.ofAnNepr.currentText() + ".xlsx")
+                ws = wb.active
+
+                data.drop(i-1, inplace=True)
+        data.sort_values(by="nr_dec", inplace=True, ignore_index=True, ascending=False)
+
+        header = ["anlzan21n_id",
+                  "Oficiul",
+                  "PT, Fider",
+                  "Nr. cons.",
+                  "Ore",
+                  "Nr. deconect."
+                  ]
+
+        self.tableAnNepr = QTableView()
+        model = TableModel(data, header)
+
+        self.tableAnNepr.setModel(model)
+        self.tableAnNepr.setStyleSheet('Background-color: rgb(200, 200, 200)')
+        self.tableAnNepr.resizeColumnsToContents()
+        self.tableAnNepr.verticalHeader().hide()
+        self.tableAnNepr.hideColumn(0)
+        self.tableAnNepr.setSelectionBehavior(QAbstractItemView.SelectRows)
+
+        title = QLabel()
+        title.setText("Analiza anuala a deconectarilor neprogramate, oficiul:")
+        title.setStyleSheet('padding-left: 50%; font-size:24px; color:rgb(191, 60, 60)')
+
+        emptyLb = QLabel("")
+
+        hbox = QHBoxLayout()
+        hbox.addWidget(title)
+        hbox.addWidget(self.ofAnNepr)
+        hbox.addWidget(emptyLb)
+        hbox.addWidget(emptyLb)
+
+        anNeprFrame = QFrame()
+        vbox = QVBoxLayout()
+        vbox.addLayout(hbox)
+        vbox.addWidget(self.tableAnNepr)
+        anNeprFrame.setLayout(vbox)
+
+        self.anNeprMdi = QMdiSubWindow()
+        self.myMidi.addSubWindow(self.anNeprMdi)
+        self.anNeprMdi.setWidget(anNeprFrame)
+        self.anNeprMdi.setWindowIcon(QIcon(QPixmap(1, 1)))
+        self.anNeprMdi.setGeometry(100, 100, 1000, 600)
+        self.anNeprMdi.showMaximized()
+        self.anNeprMdi.show()
+
 
     def decAnaliza(self):
         # self.abrOficii()
         self.ofCombo = QComboBox()
-        self.ofCombo.addItems(self.ofListAbr)
+        self.ofCombo.addItems(self.ofList)
         self.ofCombo.setStyleSheet("padding-left:10%; font-size:12px")
         self.ofCombo.setFixedHeight(25)
         self.ofCombo.setFixedWidth(100)
@@ -5600,32 +5719,36 @@ class mainWindow(QMainWindow):
                 self.ptFidPlOre.append(self.wsDecNeProg.cell(row=i, column=19).value)
                 self.ptFidPlOf.append(self.wsDecNeProg.cell(row=i, column=2).value)
         elif self.analizaAnContr == 1:
-            for i in range(2, self.wsAnAnualP.max_row + 1):
-                self.ptFidPl.append(self.wsAnAnualP.cell(row=i, column=2).value)
-                self.ptFidPlCons.append(self.wsAnAnualP.cell(row=i, column=3).value)
-                self.ptFidPlOre.append(self.wsAnAnualP.cell(row=i, column=4).value)
-                self.ptFidPlOf.append(self.wsAnAnualP.cell(row=i, column=1).value)
+            self.cur.execute('SELECT * FROM anlzan21p')
+            for i in self.cur.fetchall():
+                self.ptFidPl.append(i[2])
+                self.ptFidPlCons.append(i[3])
+                self.ptFidPlOre.append(i[4])
+                self.ptFidPlOf.append(i[1])
         elif self.analizaAnContr == 2:
-            for i in range(2, self.wsAnAnualN.max_row + 1):
-                self.ptFidPl.append(self.wsAnAnualN.cell(row=i, column=2).value)
-                self.ptFidPlCons.append(self.wsAnAnualN.cell(row=i, column=3).value)
-                self.ptFidPlOre.append(self.wsAnAnualN.cell(row=i, column=4).value)
-                self.ptFidPlOf.append(self.wsAnAnualN.cell(row=i, column=1).value)
+            self.cur.execute('SELECT * FROM anlzan21n')
+            for i in self.cur.fetchall():
+                self.ptFidPl.append(i[2])
+                self.ptFidPlCons.append(i[3])
+                self.ptFidPlOre.append(i[4])
+                self.ptFidPlOf.append(i[1])
+            self.cur.close()
 
         for i in self.ptFidPl:
             self.nrDec.append(self.ptFidPl.count(i))
 
+        # print(self.ptFidPlOre)
         self.anTabel = pd.DataFrame()
         for i in range(len(self.ptFidPl)):
-            self.anTabel.at[i, 0] = self.ptFidPl[i]
-            self.anTabel.at[i, 1] = self.ptFidPlCons[i]
+            self.anTabel.at[i, 0] = self.ptFidPlOf[i]
+            self.anTabel.at[i, 1] = self.ptFidPl[i]
             self.anTabel.at[i, 2] = self.nrDec[i]
-            myList = self.ptFidPlOre[i].split(":")
-            self.anTabel.at[i, 3] = int(myList[0]) + int(myList[1])/60
-            self.anTabel.at[i, 4] = self.ptFidPlOf[i]
+            self.anTabel.at[i, 3] = self.ptFidPlOre[i]
+            self.anTabel.at[i, 4] = self.ptFidPlCons[i]
+
 
         try:
-            self.anTabel.sort_values(by=0, ignore_index=True, inplace=True)
+            self.anTabel.sort_values(by=1, ignore_index=True, inplace=True)
         except KeyError:
             if self.analizaContr and self.analizaAnContr == 0:
                 self.msSecCall("Deconectari lunare programate nu exista!")
@@ -5636,80 +5759,107 @@ class mainWindow(QMainWindow):
             elif self.analizaAnContr == 2:
                 self.msSecCall("Deconectari anuale neprogramate nu exista!")
 
+        # print(self.anTabel)
         iterIAn = []
         for i in range(1, len(self.ptFidPl)):
-            if self.anTabel.at[i, 0] == self.anTabel.at[i - 1, 0]:
-                self.anTabel.at[i, 3] = self.anTabel.at[i, 3] + \
-                                            self.anTabel.at[i-1, 3]
+            if self.anTabel.at[i, 1] == self.anTabel.at[i - 1, 1]:
+                myTime = datetime.datetime.strptime(self.anTabel.at[i, 3], '%H:%M:%S')
+                myTimeMinus = datetime.datetime.strptime(self.anTabel.at[i-1, 3], '%H:%M:%S')
+                # myHourAdd = myTime.hour + myTimeMinus.hour
+                # myMinuteAdd = myTime.minute + myTimeMinus.minute
+                myDeltaMinus = myTimeMinus.hour * 3600 + myTimeMinus.minute *60
+                myTimeAdd = myTime + datetime.timedelta(seconds=myDeltaMinus)
+                self.anTabel.at[i, 3] = datetime.datetime.strftime(myTimeAdd, '%H:%M:%S')
                 self.anTabel.drop([i-1], inplace=True)
         try:
-            self.anTabel.sort_values(by=3, ignore_index=True, inplace=True, ascending=False)
+            self.anTabel.sort_values(by=2, ignore_index=True, inplace=True, ascending=False)
         except KeyError:
             pass
-
+        #
+        # # print(self.anTabel)
+        #
         for i in range(len(self.anTabel)):
             if self.ofChangeContr:
-                if self.anTabel.at[i, 4] != self.ofAfterCh:
+                if self.anTabel.at[i, 0] != self.ofAfterCh:
                     iterIAn.append(i)
             else:
-                if self.anTabel.at[i, 4] != self.ofCombo.currentText():
+                if self.anTabel.at[i, 0] != self.abrOficiiSec(self.ofCombo.currentText()):
                     iterIAn.append(i)
 
         for i in range(len(iterIAn)):
             self.anTabel.drop([iterIAn[i]], inplace=True)
 
-        try:
-            self.anTabel.sort_values(by=3, ignore_index=True, inplace=True, ascending=False)
-        except KeyError:
-            pass
-
-    #Pun graficile analizei
-
-        categories = []
-        set0 = QtCharts.QBarSet("Nr. de deconectari")
-        set1 = QtCharts.QBarSet("Ore deconectate")
-        set2 = QtCharts.QBarSet("Nr. de consumatori x10")
-
-        for i in range(len(self.anTabel)):
-            set0.append([float(self.anTabel.at[i, 2])])
-            set1.append([float(self.anTabel.at[i, 3])])
-            set2.append([float(self.anTabel.at[i, 1]) / 10])
-            categories.append(self.anTabel.at[i, 0])
-
-        series = QtCharts.QBarSeries()
-        series.append(set0)
-        series.append(set1)
-        series.append(set2)
-
-        chart = QtCharts.QChart()
-        chart.addSeries(series)
-        if self.analizaContr or self.analizaAnContr == 1:
-            chart.setTitle("Deconectari programate")
-        elif not self.analizaContr or self.analizaAnContr == 2:
-            chart.setTitle("Deconectari neprogramate")
-        chart.setTitleFont(QFont("Calibri", 14))
-        # chart.setTitleBrush(QColor(191, 60, 60))
-        chart.setAnimationOptions(QtCharts.QChart.SeriesAnimations)
-
-        axis = QtCharts.QBarCategoryAxis()
-        axis.append(categories)
-        chart.createDefaultAxes()
-        chart.setAxisX(axis, series)
-
-        chart.legend().setVisible(True)
-        chart.legend().setAlignment(Qt.AlignBottom)
+        # try:
+        #     self.anTabel.sort_values(by=2, ignore_index=True, inplace=True, ascending=False)
+        # except KeyError:
+        #     pass
 
 
-        self.chartView = QtCharts.QChartView(chart)
-        self.chartView.setRenderHint(QPainter.Antialiasing)
+    # #Pun graficile analizei
+    #
+    #     categories = []
+    #     set0 = QtCharts.QBarSet("Nr. de deconectari")
+    #     set1 = QtCharts.QBarSet("Ore deconectate")
+    #     set2 = QtCharts.QBarSet("Nr. de consumatori x10")
+    #
+    #     for i in range(len(self.anTabel)):
+    #         set0.append([float(self.anTabel.at[i, 2])])
+    #         set1.append([float(self.anTabel.at[i, 3])])
+    #         set2.append([float(self.anTabel.at[i, 1]) / 10])
+    #         categories.append(self.anTabel.at[i, 0])
+    #
+    #     series = QtCharts.QBarSeries()
+    #     series.append(set0)
+    #     series.append(set1)
+    #     series.append(set2)
+    #
+    #     chart = QtCharts.QChart()
+    #     chart.addSeries(series)
+    #     if self.analizaContr or self.analizaAnContr == 1:
+    #         chart.setTitle("Deconectari programate")
+    #     elif not self.analizaContr or self.analizaAnContr == 2:
+    #         chart.setTitle("Deconectari neprogramate")
+    #     chart.setTitleFont(QFont("Calibri", 14))
+    #     # chart.setTitleBrush(QColor(191, 60, 60))
+    #     chart.setAnimationOptions(QtCharts.QChart.SeriesAnimations)
+    #
+    #     axis = QtCharts.QBarCategoryAxis()
+    #     axis.append(categories)
+    #     chart.createDefaultAxes()
+    #     chart.setAxisX(axis, series)
+    #
+    #     chart.legend().setVisible(True)
+    #     chart.legend().setAlignment(Qt.AlignBottom)
+    #
+    #
+    #     self.chartView = QtCharts.QChartView(chart)
+    #     self.chartView.setRenderHint(QPainter.Antialiasing)
+    #     # self.chartView.setRubberBand(QtCharts.QChartView.HorizontalRubberBand)
         self.anFuncWindow()
+    #     import matplotlib
+    #
+        # print(self.anTabel)
 
     def anFuncWindow(self):
+        header = ["Oficiul",
+                  "PT, Fider, nr.",
+                  "Numar, deconectari",
+                  "Ore deconectate",
+                  "Numar consumatori"]
+        self.tableAnaliza = QTableView()
+        self.modelAnaliza = TableModel(self.anTabel, header)
+        self.tableAnaliza.setModel(self.modelAnaliza)
+        self.tableAnaliza.setWordWrap(True)
+        self.tableAnaliza.setTextElideMode(Qt.ElideMiddle)
+        self.tableAnaliza.resizeColumnsToContents()
+        self.tableAnaliza.setStyleSheet("Background-color: rgb(200, 200, 200)")
+        self.tableAnaliza.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.tableAnaliza.verticalHeader().hide()
 
         if self.analizaContr or self.analizaAnContr == 1:
             self.anFrameP = QFrame()
             vbox = QVBoxLayout()
-            vbox.addWidget(self.chartView)
+            vbox.addWidget(self.tableAnaliza)
             self.anFrameP.setLayout(vbox)
             self.analizaContr = False
             if self.analizaAnContr == 1:
@@ -5740,7 +5890,7 @@ class mainWindow(QMainWindow):
 
             vbox = QVBoxLayout()
             vbox.addLayout(hbox)
-            vbox.addWidget(self.chartView)
+            vbox.addWidget(self.tableAnaliza)
             self.anFrameN.setLayout(vbox)
 
             myScrRes = app.primaryScreen()
@@ -5946,7 +6096,7 @@ class mainWindow(QMainWindow):
         regFrame = QFrame()
         regAlTitle = QLabel()
 
-        regAlTitle.setText("Registru de deranjamente Of.:")
+        regAlTitle.setText("Registru de deranjamente, oficiul:")
         regAlTitle.setStyleSheet("padding-left: 50%; font-size:24px; color:rgb(191, 60, 60)")
         # regAlTitle.move(0, 100)
         # self.loadOficii()
