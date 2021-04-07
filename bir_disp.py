@@ -99,7 +99,12 @@ class TableModel(QAbstractTableModel):
                 return Qt.AlignCenter
         if role == Qt.BackgroundRole:
             value = self._data.iloc[index.row(), index.column()]
-            # value_minus = self._data.iloc[index.row(), index.column() - 1]
+            for i in range(9):
+                value_t = self._data.iloc[index.row(), index.column() - i]
+                if value_t == "TOTAL":
+                    return QColor(80, 80, 80)
+            # value_8 = self._data.iloc[index.row(), index.column() - 8]
+            # value_7 = self._data.iloc[index.row(), index.column() - 7]
             matched = re.match("\d\d.\d\d.\d\d\d\d \d\d:\d\d", str(value))
             matchedShort = re.match("\d\d.\d\d.\d\d \d\d:\d\d", str(value))
             # matchedDelta = re.match("\d:\d\d:\d\d", str(value))
@@ -171,6 +176,10 @@ class TableModel(QAbstractTableModel):
                 return QColor(92, 156, 107)
         if role == Qt.ForegroundRole:
             value = self._data.iloc[index.row(), index.column()]
+            for i in range(9):
+                value_t = self._data.iloc[index.row(), index.column() - i]
+                if value_t == "TOTAL":
+                    return QColor(255, 255, 255)
             matchedShort = re.match("\d\d.\d\d.\d\d \d\d:\d\d", str(value))
             matchedRef = re.search("Refuz", str(value))
             matchedPreg = re.search("Pregatire:", str(value))
@@ -4516,7 +4525,7 @@ class mainWindow(QMainWindow):
                     # myMaxRow = self.wsRegAl.max_row
                     # Controlez daca exista mapa cu anul
                     self.dtContrSaidi()
-                    self.dtAnAnual()
+                    # self.dtAnAnual()
                     self.loadPtSec()
                     myDateTime = datetime.datetime.now()
                     self.data.at[self.modRow, 17] = "Terminat:\n" + \
@@ -4695,7 +4704,7 @@ class mainWindow(QMainWindow):
                         self.wsAnAnualP.cell(row=anAnualMaxRow, column=5).value = \
                             myDeltaHour
                         self.wsAnAnualP.cell(row=anAnualMaxRow, column=6).value = \
-                            "1"
+                            1
                         try:
                             self.wbAnAnual.save(self.fileAnAnual)
                         except PermissionError:
@@ -4891,24 +4900,80 @@ class mainWindow(QMainWindow):
                                            "nu s-au introdus in fisierul RAPORT PDJT excel (cineva foloseste aplicatia)!")
 
                         # Introduc datele in Excel analiza anuala
-                        anAnualMaxRow = self.wsAnAnualN.max_row + 1
-                        self.wsAnAnualN.cell(row=anAnualMaxRow, column=1).value = \
-                            self.data.at[self.modRow, 0]
-                        self.wsAnAnualN.cell(row=anAnualMaxRow, column=2).value = \
-                            self.data.at[self.modRow, 4] + " " +self.data.at[self.modRow, 6]
-                        self.wsAnAnualN.cell(row=anAnualMaxRow, column=3).value = \
-                            self.data.at[self.modRow, 5]
-                        self.wsAnAnualN.cell(row=anAnualMaxRow, column=4).value = \
-                            self.fidNrCas + self.fidNrEc
-                        self.wsAnAnualN.cell(row=anAnualMaxRow, column=5).value = \
-                            myDeltaHour
-                        self.wsAnAnualN.cell(row=anAnualMaxRow, column=6).value = \
-                            "1"
-                        try:
-                            self.wbAnAnual.save(self.fileAnAnual)
-                        except PermissionError:
-                            self.msSecCall("Datele din autorizatie, sectiunea NEPROGRAMAT \n"
-                                           "nu vor participa la analiza anuala (undeva este deschisa analiza anuala excel)!")
+                        self.postgresLoad()
+                        self.cur.execute(f"""INSERT INTO anlzan21n (
+                                                oficiul,
+                                                pt_fider,
+                                                localitate,
+                                                nr_cons,
+                                                ore,
+                                                nr_dec
+                                            ) 
+                                            VALUES (
+                                                '{self.data.at[self.modRow, 0]}',
+                                                '{self.data.at[self.modRow, 4] + " " +self.data.at[self.modRow, 6]}',
+                                                '{self.data.at[self.modRow, 5]}',
+                                                '{self.fidNrCas + self.fidNrEc}',
+                                                '{myDeltaHour}',
+                                                '{1}'
+                                            )"""
+                        )
+                        self.conn.commit()
+                        self.cur.close()
+
+                        # Determin incadrarea termenului urban, rural
+                        myList = myDeltaHour.split(":")
+                        difH = ""
+                        if myLocalitate == None or bool(re.search("or[.]", myLocalitate)):
+                            if int(myList[0]) > 6:
+                                difH = int(myList[0]) - 6
+                        else:
+                            if int(myList[0]) > 12:
+                                difH = int(myList[0]) - 12
+                        if difH != "":
+                            termText = "Depasit cu: " + str(difH) + "H " + myList[1] + "min."
+                        else:
+                            termText = "Incadrat"
+
+                        #Introduc datele in MongoDB analiza lunara
+                        for i in self.db.deconect_app_deconect.find().sort("_id", -1).limit(1):
+                            self.nrDec = int(i["id"]) + 1
+
+                        self.db.deconect_app_deconect.insert_one({
+                            "id": self.nrDec,
+                            "oficiul": self.data.at[self.modRow, 0],
+                            "nr_ordine": self.nrDec,
+                            "pt": self.data.at[self.modRow, 4],
+                            "fid_04kv": self.data.at[self.modRow, 6],
+                            "data_dec": valuePregList[1],
+                            "data_conect": datetime.datetime.now().strftime("%d.%m.%y %H:%M"),
+                            "durata": myDeltaHour,
+                            "cons_cas": self.fidNrCas,
+                            "cons_ec": self.fidNrEc,
+                            "total": self.fidNrCas + self.fidNrEc,
+                            "localitate": self.data.at[self.modRow, 5],
+                            "cauza": self.data.at[self.modRow, 7],
+                            "termen": termText,
+                        })
+
+                        # anAnualMaxRow = self.wsAnAnualN.max_row + 1
+                        # self.wsAnAnualN.cell(row=anAnualMaxRow, column=1).value = \
+                        #     self.data.at[self.modRow, 0]
+                        # self.wsAnAnualN.cell(row=anAnualMaxRow, column=2).value = \
+                        #     self.data.at[self.modRow, 4] + " " +self.data.at[self.modRow, 6]
+                        # self.wsAnAnualN.cell(row=anAnualMaxRow, column=3).value = \
+                        #     self.data.at[self.modRow, 5]
+                        # self.wsAnAnualN.cell(row=anAnualMaxRow, column=4).value = \
+                        #     self.fidNrCas + self.fidNrEc
+                        # self.wsAnAnualN.cell(row=anAnualMaxRow, column=5).value = \
+                        #     myDeltaHour
+                        # self.wsAnAnualN.cell(row=anAnualMaxRow, column=6).value = \
+                        #     1
+                        # try:
+                        #     self.wbAnAnual.save(self.fileAnAnual)
+                        # except PermissionError:
+                        #     self.msSecCall("Datele din autorizatie, sectiunea NEPROGRAMAT \n"
+                        #                    "nu vor participa la analiza anuala (undeva este deschisa analiza anuala excel)!")
                     self.erContrAl = False
 
                 else:
@@ -5549,14 +5614,14 @@ class mainWindow(QMainWindow):
         #     self.wsAnAnualP = self.wbAnAnual["Programat"]
         #     self.wsAnAnualN = self.wbAnAnual["Neprogramat"]
 
-        conn = psycopg2.connect(
+        self.conn = psycopg2.connect(
             host = 'localhost',
             database = 'ungheni',
             user = 'postgres',
             password = 'Rodion'
         )
 
-        self.cur = conn.cursor()
+        self.cur = self.conn.cursor()
 
     def ofChangeAnaliza(self):
         # self.abrOficii()
@@ -5610,24 +5675,35 @@ class mainWindow(QMainWindow):
         self.ofAnNepr.setFixedHeight(25)
         self.ofAnNepr.setFixedWidth(100)
         self.ofAnNepr.currentTextChanged.connect(self.AnNeprFunc)
-        self.postgresLoad()
 
         self.AnNeprFunc()
 
     def AnNeprFunc(self):
+        self.postgresLoad()
+
         if self.ofAnNepr.currentText() == "Toate oficiile":
-            self.cur.execute("SELECT * FROM anlzan21n")
+            self.cur.execute("""SELECT * FROM anlzan21n""")
         else:
-            self.cur.execute("SELECT * FROM anlzan21n WHERE oficiul='{}'".format(self.abrOficiiSec(self.ofAnNepr.currentText())))
+            self.cur.execute("""SELECT * FROM anlzan21n WHERE oficiul='{}'""".format(self.abrOficiiSec(self.ofAnNepr.currentText())))
         tuples = self.cur.fetchall()
-        column_names = ["anlzan21n_id", "oficiul", "pt_fider", "nr_consumatori", "ore"]
+        column_names = ["anlzan21n_id",
+                        "oficiul",
+                        "pt_fider",
+                        "localitate",
+                        "nr_cons",
+                        "ore",
+                        "nr_dec",
+                        "nr_regl",
+                        "compens"
+        ]
         data = pd.DataFrame(tuples, columns=column_names)
         data.sort_values(by="pt_fider", inplace=True, ignore_index=True)
-        data.insert(5, "nr_dec", 1)
         for i in range(1, len(data)):
             if data.at[i, "pt_fider"] == data.at[i-1, "pt_fider"]:
+                #Calculez numarul total de deconectari
                 data.at[i, "nr_dec"] = data.at[i, "nr_dec"] + data.at[i-1, "nr_dec"]
 
+                #Calculez timpul total de deconectare
                 myTime = datetime.datetime.strptime(data.at[i, "ore"], '%H:%M:%S')
                 myTimeMinus = datetime.datetime.strptime(data.at[i-1, "ore"], '%H:%M:%S')
                 delta = datetime.timedelta(
@@ -5637,19 +5713,45 @@ class mainWindow(QMainWindow):
                 myTimeDelta = myTime + delta
                 data.at[i, "ore"] = datetime.datetime.strftime(myTimeDelta, '%H:%M:%S')
 
-                wb = load_workbook("Bundle/" + self.ofAnNepr.currentText() + "/PT_" +\
-                                   self.ofAnNepr.currentText() + ".xlsx")
-                ws = wb.active
-
                 data.drop(i-1, inplace=True)
         data.sort_values(by="nr_dec", inplace=True, ignore_index=True, ascending=False)
+            # Calculez termenul reglementat urban, rural, suma compensatiilor
+        for i in range(len(data)):
+            if data.at[i, "localitate"] == None:
+                data.at[i, "localitate"] = ""
+            if data.at[i, "compens"] == None:
+                data.at[i, "compens"] = 0
+            if data.at[i, "localitate"] == "" or bool(re.search("or[.]", data.at[i, "localitate"])):
+                if data.at[i, "nr_dec"] <= 9:
+                    data.at[i, "nr_regl"] = "Incadrat"
+                elif data.at[i, "nr_dec"] > 9:
+                    data.at[i, "nr_regl"] = "Depasit"
+                    data.at[i, "compens"] = 0.01 * (160 * 12) * 2.04 *\
+                                            (data.at[i, "nr_regl"] - 9)
+                else:
+                    data.at[i, "nr_regl"] = "Eroare"
+            else:
+                if data.at[i, "nr_dec"] <= 12:
+                    data.at[i, "nr_regl"] = "Incadrat"
+                elif data.at[i, "nr_regl"] > 12:
+                    data.at[i, "nr_regl"] = "Depasit"
+                    data.at[i, "compens"] = 0.01 * (160 * 12) * 2.04 * \
+                                            (data.at[i, "nr_regl"] - 12)
+                else:
+                    data.at[i, "nr_regl"] = "Eroare"
+
+            #Calculez datele pentru SAIDI
+
 
         header = ["anlzan21n_id",
                   "Oficiul",
                   "PT, Fider",
+                  "Localitate",
                   "Nr. cons.",
                   "Ore",
-                  "Nr. deconect."
+                  "Nr. deconect.",
+                  "Nr. reglementat",
+                  "Compensatie (lei)"
                   ]
 
         self.tableAnNepr = QTableView()
@@ -5668,25 +5770,109 @@ class mainWindow(QMainWindow):
 
         emptyLb = QLabel("")
 
+        # titleFrame = QFrame()
         hbox = QHBoxLayout()
         hbox.addWidget(title)
         hbox.addWidget(self.ofAnNepr)
         hbox.addWidget(emptyLb)
         hbox.addWidget(emptyLb)
 
-        anNeprFrame = QFrame()
+#Calulez datele pentru SAIDI
+        # for i in range(len(self.ofListAbr)):
+        #     self.cur.execute(f"""SELECT nr_cons, ore FROM anlzan21n
+        #                             WHERE oficiul = '{self.ofListAbr[i]}'""")
+        #     tuples = self.cur.fetchall()
+        #     column_names = [
+        #                     "nr_cons",
+        #                     "ore"
+        #                     ]
+        #     data = pd.DataFrame(tuples, columns=column_names)
+        #     for j in range(1, len(data)):
+        #         data.at[j, "nr_cons"] = data.at[j, "nr_cons"] + \
+        #                                 data.at[j - 1, "nr_cons"]
+        #
+        #         # print(data.at[j, "anlzan21n_id"])
+        #         myTime = datetime.datetime.strptime(data.at[j, "ore"], '%H:%M:%S')
+        #         myTimeMinus = datetime.datetime.strptime(data.at[j - 1, "ore"], '%H:%M:%S')
+        #         myDeltaHour = myTime + datetime.timedelta(hours=myTimeMinus.hour, minutes=myTimeMinus.minute)
+        #         data.at[j, "ore"] = datetime.datetime.strftime(myDeltaHour, '%H:%M:%S')
+        #
+        #     print(data.at[j, "nr_cons"])
+        #     print(data.at[j, "ore"])
+            # self.cur.execute(f"""SELECT cons_tot FROM saidin
+            #                     WHERE oficiul = '{self.ofListAbr[i]}'""")
+            # for l in self.cur.fetchall():
+            #     cons_tot = l[0]
+            #
+            # myTime = datetime.datetime.strptime(data.at[j, "ore"], '%H:%M:%S')
+            # time_tot_min = myTime.hour * 60 + myTime.minute
+            #
+            # self.cur.execute(f"""UPDATE saidin
+            #                      SET    cons_dec = '{data.at[j, "nr_cons"]}',
+            #                             t_dec = '{data.at[j, "ore"]}',
+            #                             saidi = '{data.at[j, "nr_cons"] * time_tot_min / cons_tot}'
+            #                     WHERE oficiul = '{self.ofListAbr[i]}';
+            #                     """)
+        #Incarc tabelul saidi
+        self.cur.execute('SELECT * FROM saidin')
+        tuples = self.cur.fetchall()
+        column_names = [
+            "saidi_id",
+            "oficiul",
+            "cons_cas",
+            "cons_ec",
+            "cons_tot",
+            "cons_dec",
+            "t_dec",
+            "saidi",
+            "saifi",
+            "caifi"
+        ]
+
+        data = pd.DataFrame(tuples, columns=column_names)
+        header = [
+            "saidin_id",
+            "Oficiul",
+            "Cons.casn.",
+            "Cons.non-casn.",
+            "Cons.total",
+            "Cons.dec.",
+            "Timpul dec.",
+            "SAIDI",
+            "SAIFI",
+            "CAIFI"
+        ]
+
+        self.tableSaidiN = QTableView()
+        model = TableModel(data, header)
+        self.tableSaidiN.setModel(model)
+        self.tableSaidiN.setStyleSheet('Background-color: rgb(200, 200, 200)')
+        self.tableSaidiN.resizeColumnsToContents()
+        self.tableSaidiN.verticalHeader().hide()
+        self.tableSaidiN.hideColumn(0)
+        self.tableSaidiN.setSelectionBehavior(QAbstractItemView.SelectRows)
+
+        splitter = QSplitter(Qt.Horizontal)
+        splitter.addWidget(self.tableAnNepr)
+        splitter.addWidget(self.tableSaidiN)
+
+        totalFrame = QFrame()
         vbox = QVBoxLayout()
         vbox.addLayout(hbox)
-        vbox.addWidget(self.tableAnNepr)
-        anNeprFrame.setLayout(vbox)
+        vbox.addWidget(splitter)
+        vbox.setStretch(1, 1)
+        totalFrame.setLayout(vbox)
+
 
         self.anNeprMdi = QMdiSubWindow()
         self.myMidi.addSubWindow(self.anNeprMdi)
-        self.anNeprMdi.setWidget(anNeprFrame)
+        self.anNeprMdi.setWidget(totalFrame)
         self.anNeprMdi.setWindowIcon(QIcon(QPixmap(1, 1)))
         self.anNeprMdi.setGeometry(100, 100, 1000, 600)
         self.anNeprMdi.showMaximized()
         self.anNeprMdi.show()
+
+        self.cur.close()
 
 
     def decAnaliza(self):
@@ -6163,7 +6349,7 @@ class mainWindow(QMainWindow):
 
     def decFunc(self):
         self.dtContrDecZl()
-        self.dtAnAnual()
+        # self.dtAnAnual()
         self.abrOficii()
 
         # Calculez diferenta orelor
@@ -6201,19 +6387,20 @@ class mainWindow(QMainWindow):
 
                 myLocalitate = self.wsPt.cell(row=i, column=2).value
 
-                #Determin incadrarea termenului urban, rural
-                myList = myDeltaHour.split(":")
-                difH = ""
-                if bool(re.search("or[.]", myLocalitate)):
-                    if int(myList[0]) >= 6:
-                        difH = int(myList[0]) - 6
-                else:
-                    if int(myList[0]) >= 12:
-                        difH = int(myList[0]) - 12
-                if difH != "":
-                    termText = "Depasit cu: " + str(difH) + "H " + myList[1] + "min."
-                else:
-                    termText = "Incadrat"
+        #Determin incadrarea termenului urban, rural
+        myList = myDeltaHour.split(":")
+        difH = ""
+
+        if myLocalitate == None or bool(re.search("or[.]", myLocalitate)):
+            if int(myList[0]) > 6:
+                difH = int(myList[0]) - 6
+        else:
+            if int(myList[0]) > 12:
+                difH = int(myList[0]) - 12
+        if difH != "":
+            termText = "Depasit cu: " + str(difH) + "H " + myList[1] + "min."
+        else:
+            termText = "Incadrat"
 
         #Working with MongoDB
         for i in self.db.deconect_app_deconect.find().sort("_id", -1).limit(1):
@@ -6235,6 +6422,28 @@ class mainWindow(QMainWindow):
             "cauza": self.cauzaCombo.currentText(),
             "termen": termText,
         })
+
+        #Intruduc datele in postgres analiza anuala
+        self.postgresLoad()
+        self.cur.execute(f"""INSERT INTO anlzan21n (
+                                oficiul,
+                                pt_fider,
+                                localitate,
+                                nr_cons,
+                                ore,
+                                nr_dec
+                            ) 
+                            VALUES (
+                                '{self.ofVar}',
+                                '{self.ptLine.text() + " " + self.ptFidLine.text()}',
+                                '{myLocalitate}',
+                                '{self.fazaNrCas + self.fazaNrEc}',
+                                '{myDeltaHour}',
+                                '{1}'
+                            )"""
+        )
+        self.conn.commit()
+        self.cur.close()
 
         #Working with excel
         myMaxRow = self.wsDecPT.max_row + 1
@@ -6358,21 +6567,21 @@ class mainWindow(QMainWindow):
             self.msSecCall("Datele nu s-au introdus in fisierul SAIDI excel (cineva foloseste aplicatia)!")
 
         # Introduc datele in Excel analiza anuala
-        anAnualMaxRow = self.wsAnAnualN.max_row + 1
-        self.wsAnAnualN.cell(row=anAnualMaxRow, column=1).value = \
-            self.ofVar
-        self.wsAnAnualN.cell(row=anAnualMaxRow, column=2).value = \
-            self.ptLine.text()+ " " + self.ptFidLine.text()
-        self.wsAnAnualN.cell(row=anAnualMaxRow, column=3).value = \
-            self.wsDecNeProg.cell(row=self.wsDecNeProg.max_row, column=25).value + \
-            self.wsDecNeProg.cell(row=self.wsDecNeProg.max_row, column=26).value
-        self.wsAnAnualN.cell(row=anAnualMaxRow, column=4).value = \
-            myDeltaHour
-        try:
-            self.wbAnAnual.save(self.fileAnAnual)
-        except PermissionError:
-            self.msSecCall("Datele nu vor participa la analiza anuala,\n"
-                           "(undeva este deschisa analiza anuala excel, nu se permite introducerea datelor)!")
+        # anAnualMaxRow = self.wsAnAnualN.max_row + 1
+        # self.wsAnAnualN.cell(row=anAnualMaxRow, column=1).value = \
+        #     self.ofVar
+        # self.wsAnAnualN.cell(row=anAnualMaxRow, column=2).value = \
+        #     self.ptLine.text()+ " " + self.ptFidLine.text()
+        # self.wsAnAnualN.cell(row=anAnualMaxRow, column=3).value = \
+        #     self.wsDecNeProg.cell(row=self.wsDecNeProg.max_row, column=25).value + \
+        #     self.wsDecNeProg.cell(row=self.wsDecNeProg.max_row, column=26).value
+        # self.wsAnAnualN.cell(row=anAnualMaxRow, column=4).value = \
+        #     myDeltaHour
+        # try:
+        #     self.wbAnAnual.save(self.fileAnAnual)
+        # except PermissionError:
+        #     self.msSecCall("Datele nu vor participa la analiza anuala,\n"
+        #                    "(undeva este deschisa analiza anuala excel, nu se permite introducerea datelor)!")
 
         self.dialBox.close()
         self.decTabWindow()
