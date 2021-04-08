@@ -5740,7 +5740,14 @@ class mainWindow(QMainWindow):
                 else:
                     data.at[i, "nr_regl"] = "Eroare"
 
-            #Calculez datele pentru SAIDI
+        #Calculez datele pentru SAIDI
+        # for i in range(1, len(data)):
+        #     data.at[i, "nr_cons"] = data.at[i, "nr_cons"] + data.at[i-1, "nr_cons"]
+        #
+        #     myTime = datetime.datetime.strptime(data.at[i, "ore"], '%H:%M:%S')
+        #     myTimeMinus = datetime.datetime.strptime(data.at[i - 1, "ore"], '%H:%M:%S')
+        #     myDeltaHour = myTime + datetime.timedelta(hours=myTimeMinus.hour, minutes=myTimeMinus.minute)
+        #     data.at[i, "ore"] = datetime.datetime.strftime(myDeltaHour, '%H:%M:%S')
 
 
         header = ["anlzan21n_id",
@@ -5777,44 +5784,39 @@ class mainWindow(QMainWindow):
         hbox.addWidget(emptyLb)
         hbox.addWidget(emptyLb)
 
-#Calulez datele pentru SAIDI
-        # for i in range(len(self.ofListAbr)):
-        #     self.cur.execute(f"""SELECT nr_cons, ore FROM anlzan21n
-        #                             WHERE oficiul = '{self.ofListAbr[i]}'""")
-        #     tuples = self.cur.fetchall()
-        #     column_names = [
-        #                     "nr_cons",
-        #                     "ore"
-        #                     ]
-        #     data = pd.DataFrame(tuples, columns=column_names)
-        #     for j in range(1, len(data)):
-        #         data.at[j, "nr_cons"] = data.at[j, "nr_cons"] + \
-        #                                 data.at[j - 1, "nr_cons"]
-        #
-        #         # print(data.at[j, "anlzan21n_id"])
-        #         myTime = datetime.datetime.strptime(data.at[j, "ore"], '%H:%M:%S')
-        #         myTimeMinus = datetime.datetime.strptime(data.at[j - 1, "ore"], '%H:%M:%S')
-        #         myDeltaHour = myTime + datetime.timedelta(hours=myTimeMinus.hour, minutes=myTimeMinus.minute)
-        #         data.at[j, "ore"] = datetime.datetime.strftime(myDeltaHour, '%H:%M:%S')
-        #
-        #     print(data.at[j, "nr_cons"])
-        #     print(data.at[j, "ore"])
-            # self.cur.execute(f"""SELECT cons_tot FROM saidin
-            #                     WHERE oficiul = '{self.ofListAbr[i]}'""")
-            # for l in self.cur.fetchall():
-            #     cons_tot = l[0]
-            #
-            # myTime = datetime.datetime.strptime(data.at[j, "ore"], '%H:%M:%S')
-            # time_tot_min = myTime.hour * 60 + myTime.minute
-            #
-            # self.cur.execute(f"""UPDATE saidin
-            #                      SET    cons_dec = '{data.at[j, "nr_cons"]}',
-            #                             t_dec = '{data.at[j, "ore"]}',
-            #                             saidi = '{data.at[j, "nr_cons"] * time_tot_min / cons_tot}'
-            #                     WHERE oficiul = '{self.ofListAbr[i]}';
-            #                     """)
+        # Calculez datele pentru SAIDI
+        cons_dec_tot = data.sum(axis=0)["nr_cons"]
+        data_ore = pd.DataFrame(pd.to_timedelta(data["ore"]))
+        time_delta = data_ore.sum(axis=0)["ore"]
+        time_sec = time_delta.days * 24 * 60 * 60 + time_delta.seconds
+        time_min = time_sec / 60
+
+        if self.ofAnNepr.currentText() != "Toate oficiile":
+            of_ales = self.abrOficiiSec(self.ofAnNepr.currentText())
+        else:
+            of_ales = 'TOTAL'
+
+        self.cur.execute(f"""SELECT cons_tot FROM saidin
+                            WHERE oficiul = '{of_ales}'""")
+
+        for i in self.cur.fetchall():
+            cons_tot = i[0]
+
+        self.cur.execute(f"""UPDATE saidin
+                             SET cons_dec = '{cons_dec_tot}',
+                                t_dec = '{time_min}',
+                                saidi = '{round(cons_dec_tot * time_min / cons_tot, 2)}'
+                            WHERE oficiul = '{of_ales}';
+                            """)
+        # self.cur.execute("""UPDATE saidin
+        #                              SET cons_dec = 3,
+        #                                 t_dec = '{time_min}',
+        #                                 saidi = 4
+        #                             WHERE oficiul = 'UN';
+        #                             """)
+
         #Incarc tabelul saidi
-        self.cur.execute('SELECT * FROM saidin')
+        self.cur.execute('SELECT * FROM saidin ORDER BY saidin_id')
         tuples = self.cur.fetchall()
         column_names = [
             "saidi_id",
