@@ -18,14 +18,18 @@ from PySide2.QtWidgets import QMdiSubWindow, QLineEdit, QMainWindow, QMdiArea, \
     QMessageBox, QTextEdit, QCheckBox, QCalendarWidget
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment
-from PySide2.QtCharts import QtCharts
 from qtwidgets import PasswordEdit
 from pymongo import MongoClient
 from docx import Document
 from docx2pdf import convert
 from playsound import playsound
 from twilio.rest import Client
+from matplotlib.backends.backend_qt5agg import (
+    FigureCanvas, NavigationToolbar2QT as NavigationToolbar)
+from matplotlib.figure import Figure
+
 import pandas as pd
+import numpy as np
 import pymongo
 import re
 import datetime
@@ -99,7 +103,7 @@ class TableModel(QAbstractTableModel):
                 return Qt.AlignCenter
         if role == Qt.BackgroundRole:
             value = self._data.iloc[index.row(), index.column()]
-            for i in range(9):
+            for i in range(10):
                 value_t = self._data.iloc[index.row(), index.column() - i]
                 if value_t == "TOTAL":
                     return QColor(80, 80, 80)
@@ -176,7 +180,7 @@ class TableModel(QAbstractTableModel):
                 return QColor(92, 156, 107)
         if role == Qt.ForegroundRole:
             value = self._data.iloc[index.row(), index.column()]
-            for i in range(9):
+            for i in range(10):
                 value_t = self._data.iloc[index.row(), index.column() - i]
                 if value_t == "TOTAL":
                     return QColor(255, 255, 255)
@@ -703,7 +707,7 @@ class mainWindow(QMainWindow):
 
         anualProg = QAction("Programat", self)
         anualMen.addAction(anualProg)
-        anualProg.triggered.connect(self.AnualNepr)
+        anualProg.triggered.connect(self.AnualProg)
 
         anualNepr = QAction("Neprogramat", self)
         anualMen.addAction(anualNepr)
@@ -3326,6 +3330,7 @@ class mainWindow(QMainWindow):
 
     #Functie populez Biroul dispecerului cu Autorizatie
     def centrAlPop(self):
+        # self.alFunc()
         global elSoundContr
         elSoundContr = True
 
@@ -4923,17 +4928,37 @@ class mainWindow(QMainWindow):
 
                         # Determin incadrarea termenului urban, rural
                         myList = myDeltaHour.split(":")
-                        difH = ""
+                        myMinute = int(myList[0]) * 60 + int(myList[1])
+                        termText = "Incadrat"
+                        compens = 0
                         if myLocalitate == None or bool(re.search("or[.]", myLocalitate)):
-                            if int(myList[0]) > 6:
-                                difH = int(myList[0]) - 6
+                            if myMinute > 6 * 60:
+                                difMinute = myMinute - 6 * 60
+                                termText = "Depasit cu: " + str(round(difMinute/60)) + "H " + myList[1] + "min."
+                                if difMinute / 60 <= 3:
+                                    k = 1
+                                elif (difMinute / 60 > 3) and (difMinute / 60 <= 6):
+                                    k = 4
+                                elif (difMinute / 60 > 6) and (difMinute / 60 <= 9):
+                                    k = 7
+                                elif (difMinute / 60 > 9):
+                                    k = 10
+                                compens = round(0.01 * 160 * 2.04 * k, 2)
+
                         else:
-                            if int(myList[0]) > 12:
-                                difH = int(myList[0]) - 12
-                        if difH != "":
-                            termText = "Depasit cu: " + str(difH) + "H " + myList[1] + "min."
-                        else:
-                            termText = "Incadrat"
+                            if myMinute > 12 * 60:
+                                difMinute = myMinute - 12 * 60
+                                termText = "Depasit cu: " + str(round(difMinute/60)) + "H " + myList[1] + "min."
+                                if difMinute / 60 <= 3:
+                                    k = 1
+                                elif (difMinute / 60 > 3) and (difMinute / 60 <= 6):
+                                    k = 4
+                                elif (difMinute / 60 > 6) and (difMinute / 60 <= 9):
+                                    k = 7
+                                elif (difMinute / 60 > 9):
+                                    k = 10
+                                compens = round(0.01 * 160 * 2.04 * k, 2)
+
 
                         #Introduc datele in MongoDB analiza lunara
                         for i in self.db.deconect_app_deconect.find().sort("_id", -1).limit(1):
@@ -4954,6 +4979,7 @@ class mainWindow(QMainWindow):
                             "localitate": self.data.at[self.modRow, 5],
                             "cauza": self.data.at[self.modRow, 7],
                             "termen": termText,
+                            "compens": compens
                         })
 
                         # anAnualMaxRow = self.wsAnAnualN.max_row + 1
@@ -5114,6 +5140,11 @@ class mainWindow(QMainWindow):
         except AttributeError:
             pass
 
+    # def alFunc(self):
+    #     myTime = datetime.datetime.now()
+    #     for i in self.db.list_collection_names():
+    #         if i == "al_" + myTime.year + "_" + myTime.month:
+    #             self.reg_al = self.db.i
 
     #  Functie pentru popularea Registrului de autorizatii
     def regPop(self):
@@ -5615,10 +5646,10 @@ class mainWindow(QMainWindow):
         #     self.wsAnAnualN = self.wbAnAnual["Neprogramat"]
 
         self.conn = psycopg2.connect(
-            host = 'localhost',
+            host = 'red-nord.cwe4mogj2htg.eu-central-1.rds.amazonaws.com',
             database = 'ungheni',
             user = 'postgres',
-            password = 'Rodion'
+            password = '123pdj34'
         )
 
         self.cur = self.conn.cursor()
@@ -5665,6 +5696,318 @@ class mainWindow(QMainWindow):
     #     self.tblAnP = pd.DataFrame(plan, columns=column_names)
     #     print(self.tblAnN)
 
+    def AnualProg(self):
+        ofList = ["Toate oficiile"]
+        ofList = ofList + self.ofList
+
+        self.ofAnProg = QComboBox()
+        self.ofAnProg.addItems(ofList)
+        self.ofAnProg.setStyleSheet('padding-left:10%; font-size:12px')
+        self.ofAnProg.setFixedHeight(25)
+        self.ofAnProg.setFixedWidth(100)
+        self.ofAnProg.currentTextChanged.connect(self.AnProgFunc)
+
+        self.AnProgFunc()
+
+    def AnProgFunc(self):
+        self.postgresLoad()
+
+        if self.ofAnProg.currentText() == "Toate oficiile":
+            self.cur.execute("""SELECT * FROM anlzan21p""")
+        else:
+            self.cur.execute(
+                """SELECT * FROM anlzan21p WHERE oficiul='{}'""".format(self.abrOficiiSec(self.ofAnProg.currentText())))
+        tuples = self.cur.fetchall()
+        column_names = ["anlzan21p_id",
+                        "oficiul",
+                        "pt_fider",
+                        "localitate",
+                        "nr_cons",
+                        "ore",
+                        "nr_dec",
+                        "nr_regl",
+                        "compens"
+                        ]
+        data = pd.DataFrame(tuples, columns=column_names)
+        data.sort_values(by="pt_fider", inplace=True, ignore_index=True)
+        if data.empty != True:
+            for i in range(1, len(data)):
+                if data.at[i, "pt_fider"] == data.at[i - 1, "pt_fider"]:
+                    # Calculez numarul total de deconectari
+                    data.at[i, "nr_dec"] = data.at[i, "nr_dec"] + data.at[i - 1, "nr_dec"]
+
+                    # Calculez timpul total de deconectare
+                    myTime = datetime.datetime.strptime(data.at[i, "ore"], '%H:%M:%S')
+                    myTimeMinus = datetime.datetime.strptime(data.at[i - 1, "ore"], '%H:%M:%S')
+                    delta = datetime.timedelta(
+                        hours=myTimeMinus.hour,
+                        minutes=myTimeMinus.minute,
+                    )
+                    myTimeDelta = myTime + delta
+                    data.at[i, "ore"] = datetime.datetime.strftime(myTimeDelta, '%H:%M:%S')
+
+                    data.drop(i - 1, inplace=True)
+            data.sort_values(by="nr_dec", inplace=True, ignore_index=True, ascending=False)
+            # Calculez termenul reglementat urban, rural, suma compensatiilor
+            for i in range(len(data)):
+                if data.at[i, "localitate"] == None:
+                    data.at[i, "localitate"] = ""
+                if data.at[i, "compens"] == None:
+                    data.at[i, "compens"] = 0
+                if data.at[i, "localitate"] == "" or bool(re.search("or[.]", data.at[i, "localitate"])):
+                    if data.at[i, "nr_dec"] <= 9:
+                        data.at[i, "nr_regl"] = "Incadrat"
+                    elif data.at[i, "nr_dec"] > 9:
+                        data.at[i, "nr_regl"] = "Depasit cu " + \
+                                                str(data.at[i, "nr_dec"] - 9) + "dec."
+                        data.at[i, "compens"] = round(0.01 * (160 * 12) * 2.04 * \
+                                                      (data.at[i, "nr_dec"] - 9), 2)
+                    else:
+                        data.at[i, "nr_regl"] = "Eroare"
+                else:
+                    if data.at[i, "nr_dec"] <= 12:
+                        data.at[i, "nr_regl"] = "Incadrat"
+                    elif data.at[i, "nr_dec"] > 12:
+                        data.at[i, "nr_regl"] = "Depasit cu " + \
+                                                str(data.at[i, "nr_dec"] - 12) + "dec."
+                        data.at[i, "compens"] = round(0.01 * (160 * 12) * 2.04 * \
+                                                      (data.at[i, "nr_dec"] - 12), 2)
+                    else:
+                        data.at[i, "nr_regl"] = "Eroare"
+
+            header = ["anlzan21p_id",
+                      "Oficiul",
+                      "PT, Fider",
+                      "Localitate",
+                      "Nr. cons.",
+                      "Ore",
+                      "Nr. deconect.",
+                      "Nr. reglementat",
+                      "Compensatie (lei)"
+                      ]
+
+            self.tableAnNepr = QTableView()
+            model = TableModel(data, header)
+
+            self.tableAnNepr.setModel(model)
+            self.tableAnNepr.setStyleSheet('Background-color: rgb(200, 200, 200)')
+            self.tableAnNepr.resizeColumnsToContents()
+            self.tableAnNepr.verticalHeader().hide()
+            self.tableAnNepr.hideColumn(0)
+            self.tableAnNepr.setSelectionBehavior(QAbstractItemView.SelectRows)
+
+            title = QLabel()
+            title.setText("Analiza anuala a deconectarilor programate, oficiul:")
+            title.setStyleSheet('padding-left: 50%; font-size:24px; color:rgb(191, 60, 60)')
+
+            emptyLb = QLabel("")
+
+            # titleFrame = QFrame()
+            hbox = QHBoxLayout()
+            hbox.addWidget(title)
+            hbox.addWidget(self.ofAnProg)
+            hbox.addWidget(emptyLb)
+            hbox.addWidget(emptyLb)
+
+            # Calculez datele pentru SAIDI
+            cons_dec_tot = data.sum(axis=0)["nr_cons"]
+
+            data_ore = pd.DataFrame(pd.to_timedelta(data["ore"]))
+            time_delta = data_ore.sum(axis=0)["ore"]
+            time_sec = time_delta.days * 24 * 60 * 60 + time_delta.seconds
+            time_min = time_sec / 60
+
+            nr_dec_tot = data.sum(axis=0)["nr_dec"]
+
+            if self.ofAnProg.currentText() != "Toate oficiile":
+                of_ales = self.abrOficiiSec(self.ofAnProg.currentText())
+            else:
+                of_ales = 'TOTAL'
+
+            self.cur.execute(f"""SELECT cons_tot FROM saidip
+                                        WHERE oficiul = '{of_ales}'""")
+
+            for i in self.cur.fetchall():
+                cons_tot = i[0]
+
+            self.cur.execute(f"""UPDATE saidip
+                                         SET cons_dec = '{cons_dec_tot}',
+                                            t_dec = '{time_min}',
+                                            nr_dec_tot = '{nr_dec_tot}',
+                                            saidi = '{round(cons_dec_tot * time_min / cons_tot, 2)}',
+                                            saifi = '{round(cons_dec_tot / cons_tot, 2)}',
+                                            caidi = ROUND (saidi / saifi, 1)
+                                        WHERE oficiul = '{of_ales}';
+                                        """)
+            self.conn.commit()
+
+            # Incarc tabelul dec nepr, mongo
+            if self.ofAnProg.currentText() != "Toate oficiile":
+                tuples = self.db.deconect_app_deconect.find({
+                    "oficiul": self.abrOficiiSec(self.ofAnProg.currentText())
+                })
+            else:
+                tuples = self.db.deconect_app_deconect.find()
+            column_names = [
+                "oficiul",
+                "nr_ordine",
+                "pt",
+                "fid_04kv",
+                "data_dec",
+                "data_conect",
+                "durata",
+                "cons_cas",
+                "cons_ec",
+                "total",
+                "localitate",
+                "cauza",
+                "termen",
+                "compens",
+                "id",
+            ]
+
+            data = pd.DataFrame(tuples, columns=column_names)
+            header = [
+                "Oficiul",
+                "Nr.",
+                "PT",
+                "Fider",
+                "Data si ora\ndeconectarii",
+                "Data si ora\nconectarii",
+                "Durata\nintreruperii",
+                "Consumatori\ncasnici",
+                "Consumatori\nnon-casnici",
+                "Total",
+                "Localitate",
+                "Cauza\ndeconectarii",
+                "Termen\nreglementat",
+                "Compensatie\n(lei)",
+                "id",
+            ]
+            data.sort_values(by="id", ignore_index=True, ascending=False, inplace=True)
+
+            model = TableModel(data, header)
+
+            tableDec = QTableView()
+            tableDec.setModel(model)
+            tableDec.setStyleSheet('background-color: rgb(200, 200, 200)')
+            tableDec.hideColumn(14)
+            tableDec.setColumnWidth(0, 40)
+            tableDec.setColumnWidth(1, 40)
+            tableDec.setColumnWidth(2, 70)
+            tableDec.setColumnWidth(3, 40)
+            tableDec.setColumnWidth(4, 70)
+            tableDec.setColumnWidth(5, 70)
+            tableDec.setColumnWidth(6, 70)
+            tableDec.setColumnWidth(7, 40)
+            tableDec.setColumnWidth(8, 40)
+            tableDec.setColumnWidth(9, 40)
+            tableDec.resizeRowsToContents()
+            tableDec.verticalHeader().hide()
+
+            tablesFrame = QFrame()
+            tb_vbox = QVBoxLayout()
+            tb_vbox.addWidget(self.tableAnNepr)
+            tb_vbox.addWidget(tableDec)
+            tablesFrame.setLayout(tb_vbox)
+
+            # Incarc tabelul saidi
+            self.cur.execute('SELECT * FROM saidip ORDER BY saidip_id')
+            tuples = self.cur.fetchall()
+            column_names = [
+                "saidip_id",
+                "oficiul",
+                "cons_cas",
+                "cons_ec",
+                "cons_tot",
+                "cons_dec",
+                "t_dec",
+                "nr_dec_tot",
+                "saidi",
+                "saifi",
+                "caidi"
+            ]
+
+            data = pd.DataFrame(tuples, columns=column_names)
+            header = [
+                "saidip_id",
+                "Oficiul",
+                "Cons.casn.",
+                "Cons.non-casn.",
+                "Cons.total",
+                "Cons.total deconect",
+                "Timpul total de deconect",
+                "Nr.total de deconect.",
+                "SAIDI",
+                "SAIFI",
+                "CAIDI"
+            ]
+
+            # Creez tabelul saidin
+            self.tableSaidiN = QTableView()
+            model = TableModel(data, header)
+            self.tableSaidiN.setModel(model)
+            self.tableSaidiN.setStyleSheet('Background-color: rgb(200, 200, 200)')
+            self.tableSaidiN.resizeColumnsToContents()
+            self.tableSaidiN.verticalHeader().hide()
+            self.tableSaidiN.hideColumn(0)
+            self.tableSaidiN.setSelectionBehavior(QAbstractItemView.SelectRows)
+
+            # Creez graficul saidin
+            canvas = FigureCanvas(Figure(figsize=(1, 5), facecolor=(.78, .78, .78)))
+
+            of_labels = []
+            for i in self.ofList:
+                of_labels.append(i)
+
+            of_saidi = []
+            for i in range(len(data) - 1):
+                of_saidi.append(int(round(data.at[i, "saidi"])))
+
+            x = np.arange(len(of_labels))
+
+            ax = canvas.figure.subplots()
+            rects = ax.bar(x, of_saidi)
+
+            ax.set_facecolor('#999')
+            ax.set_ylabel("SAIDI")
+            # ax.set_xlabel("Denumire Oficii")
+            ax.set_title("SAIDI pe oficii")
+            ax.set_xticks(x)
+            ax.set_xticklabels(of_labels, rotation=25)
+            # ax.xticks(rotation='vertical')
+
+            ax_Frame = QFrame()
+            ax_vbox = QVBoxLayout()
+            ax_vbox.addWidget(self.tableSaidiN)
+            ax_vbox.addWidget(canvas)
+            ax_Frame.setLayout(ax_vbox)
+            ax.bar_label(rects)
+
+            splitter = QSplitter(Qt.Horizontal)
+            splitter.addWidget(tablesFrame)
+            splitter.addWidget(ax_Frame)
+
+            totalFrame = QFrame()
+            vbox = QVBoxLayout()
+            vbox.addLayout(hbox)
+            vbox.addWidget(splitter)
+            vbox.setStretch(1, 1)
+            totalFrame.setLayout(vbox)
+
+            self.anNeprMdi = QMdiSubWindow()
+            self.myMidi.addSubWindow(self.anNeprMdi)
+            self.anNeprMdi.setWidget(totalFrame)
+            self.anNeprMdi.setWindowIcon(QIcon(QPixmap(1, 1)))
+            self.anNeprMdi.setGeometry(100, 100, 1000, 600)
+            self.anNeprMdi.showMaximized()
+            self.anNeprMdi.show()
+
+            self.cur.close()
+        else:
+            self.msSecCall(f"Pentru oficiul {self.ofAnProg.currentText()} "
+                           f"nu exista date!")
+
     def AnualNepr(self):
         ofList = ["Toate oficiile"]
         ofList = ofList + self.ofList
@@ -5698,184 +6041,284 @@ class mainWindow(QMainWindow):
         ]
         data = pd.DataFrame(tuples, columns=column_names)
         data.sort_values(by="pt_fider", inplace=True, ignore_index=True)
-        for i in range(1, len(data)):
-            if data.at[i, "pt_fider"] == data.at[i-1, "pt_fider"]:
-                #Calculez numarul total de deconectari
-                data.at[i, "nr_dec"] = data.at[i, "nr_dec"] + data.at[i-1, "nr_dec"]
+        if data.empty != True:
+            for i in range(1, len(data)):
+                if data.at[i, "pt_fider"] == data.at[i-1, "pt_fider"]:
+                    #Calculez numarul total de deconectari
+                    data.at[i, "nr_dec"] = data.at[i, "nr_dec"] + data.at[i-1, "nr_dec"]
 
-                #Calculez timpul total de deconectare
-                myTime = datetime.datetime.strptime(data.at[i, "ore"], '%H:%M:%S')
-                myTimeMinus = datetime.datetime.strptime(data.at[i-1, "ore"], '%H:%M:%S')
-                delta = datetime.timedelta(
-                    hours=myTimeMinus.hour,
-                    minutes=myTimeMinus.minute,
-                )
-                myTimeDelta = myTime + delta
-                data.at[i, "ore"] = datetime.datetime.strftime(myTimeDelta, '%H:%M:%S')
+                    #Calculez timpul total de deconectare
+                    myTime = datetime.datetime.strptime(data.at[i, "ore"], '%H:%M:%S')
+                    myTimeMinus = datetime.datetime.strptime(data.at[i-1, "ore"], '%H:%M:%S')
+                    delta = datetime.timedelta(
+                        hours=myTimeMinus.hour,
+                        minutes=myTimeMinus.minute,
+                    )
+                    myTimeDelta = myTime + delta
+                    data.at[i, "ore"] = datetime.datetime.strftime(myTimeDelta, '%H:%M:%S')
 
-                data.drop(i-1, inplace=True)
-        data.sort_values(by="nr_dec", inplace=True, ignore_index=True, ascending=False)
-            # Calculez termenul reglementat urban, rural, suma compensatiilor
-        for i in range(len(data)):
-            if data.at[i, "localitate"] == None:
-                data.at[i, "localitate"] = ""
-            if data.at[i, "compens"] == None:
-                data.at[i, "compens"] = 0
-            if data.at[i, "localitate"] == "" or bool(re.search("or[.]", data.at[i, "localitate"])):
-                if data.at[i, "nr_dec"] <= 9:
-                    data.at[i, "nr_regl"] = "Incadrat"
-                elif data.at[i, "nr_dec"] > 9:
-                    data.at[i, "nr_regl"] = "Depasit"
-                    data.at[i, "compens"] = 0.01 * (160 * 12) * 2.04 *\
-                                            (data.at[i, "nr_regl"] - 9)
+                    data.drop(i-1, inplace=True)
+            data.sort_values(by="nr_dec", inplace=True, ignore_index=True, ascending=False)
+                # Calculez termenul reglementat urban, rural, suma compensatiilor
+            for i in range(len(data)):
+                if data.at[i, "localitate"] == None:
+                    data.at[i, "localitate"] = ""
+                if data.at[i, "compens"] == None:
+                    data.at[i, "compens"] = 0
+                if data.at[i, "localitate"] == "" or bool(re.search("or[.]", data.at[i, "localitate"])):
+                    if data.at[i, "nr_dec"] <= 9:
+                        data.at[i, "nr_regl"] = "Incadrat"
+                    elif data.at[i, "nr_dec"] > 9:
+                        data.at[i, "nr_regl"] = "Depasit cu " + \
+                            str(data.at[i, "nr_dec"] - 9) + "dec."
+                        data.at[i, "compens"] = round(0.01 * (160 * 12) * 2.04 *\
+                                                (data.at[i, "nr_dec"] - 9), 2)
+                    else:
+                        data.at[i, "nr_regl"] = "Eroare"
                 else:
-                    data.at[i, "nr_regl"] = "Eroare"
+                    if data.at[i, "nr_dec"] <= 12:
+                        data.at[i, "nr_regl"] = "Incadrat"
+                    elif data.at[i, "nr_dec"] > 12:
+                        data.at[i, "nr_regl"] = "Depasit cu " + \
+                            str(data.at[i, "nr_dec"] - 12) + "dec."
+                        data.at[i, "compens"] = round(0.01 * (160 * 12) * 2.04 * \
+                                                (data.at[i, "nr_dec"] - 12), 2)
+                    else:
+                        data.at[i, "nr_regl"] = "Eroare"
+
+            header = ["anlzan21n_id",
+                      "Oficiul",
+                      "PT, Fider",
+                      "Localitate",
+                      "Nr. cons.",
+                      "Ore",
+                      "Nr. deconect.",
+                      "Nr. reglementat",
+                      "Compensatie (lei)"
+                      ]
+
+            self.tableAnNepr = QTableView()
+            model = TableModel(data, header)
+
+            self.tableAnNepr.setModel(model)
+            self.tableAnNepr.setStyleSheet('Background-color: rgb(200, 200, 200)')
+            self.tableAnNepr.resizeColumnsToContents()
+            self.tableAnNepr.verticalHeader().hide()
+            self.tableAnNepr.hideColumn(0)
+            self.tableAnNepr.setSelectionBehavior(QAbstractItemView.SelectRows)
+
+            title = QLabel()
+            title.setText("Analiza anuala a deconectarilor neprogramate, oficiul:")
+            title.setStyleSheet('padding-left: 50%; font-size:24px; color:rgb(191, 60, 60)')
+
+            emptyLb = QLabel("")
+
+            # titleFrame = QFrame()
+            hbox = QHBoxLayout()
+            hbox.addWidget(title)
+            hbox.addWidget(self.ofAnNepr)
+            hbox.addWidget(emptyLb)
+            hbox.addWidget(emptyLb)
+
+            # Calculez datele pentru SAIDI
+            cons_dec_tot = data.sum(axis=0)["nr_cons"]
+
+            data_ore = pd.DataFrame(pd.to_timedelta(data["ore"]))
+            time_delta = data_ore.sum(axis=0)["ore"]
+            time_sec = time_delta.days * 24 * 60 * 60 + time_delta.seconds
+            time_min = time_sec / 60
+
+            nr_dec_tot = data.sum(axis=0)["nr_dec"]
+
+            if self.ofAnNepr.currentText() != "Toate oficiile":
+                of_ales = self.abrOficiiSec(self.ofAnNepr.currentText())
             else:
-                if data.at[i, "nr_dec"] <= 12:
-                    data.at[i, "nr_regl"] = "Incadrat"
-                elif data.at[i, "nr_regl"] > 12:
-                    data.at[i, "nr_regl"] = "Depasit"
-                    data.at[i, "compens"] = 0.01 * (160 * 12) * 2.04 * \
-                                            (data.at[i, "nr_regl"] - 12)
-                else:
-                    data.at[i, "nr_regl"] = "Eroare"
+                of_ales = 'TOTAL'
 
-        #Calculez datele pentru SAIDI
-        # for i in range(1, len(data)):
-        #     data.at[i, "nr_cons"] = data.at[i, "nr_cons"] + data.at[i-1, "nr_cons"]
-        #
-        #     myTime = datetime.datetime.strptime(data.at[i, "ore"], '%H:%M:%S')
-        #     myTimeMinus = datetime.datetime.strptime(data.at[i - 1, "ore"], '%H:%M:%S')
-        #     myDeltaHour = myTime + datetime.timedelta(hours=myTimeMinus.hour, minutes=myTimeMinus.minute)
-        #     data.at[i, "ore"] = datetime.datetime.strftime(myDeltaHour, '%H:%M:%S')
+            self.cur.execute(f"""SELECT cons_tot FROM saidin
+                                WHERE oficiul = '{of_ales}'""")
+
+            for i in self.cur.fetchall():
+                cons_tot = i[0]
+
+            self.cur.execute(f"""UPDATE saidin
+                                 SET cons_dec = '{cons_dec_tot}',
+                                    t_dec = '{time_min}',
+                                    nr_dec_tot = '{nr_dec_tot}',
+                                    saidi = '{round(cons_dec_tot * time_min / cons_tot, 2)}',
+                                    saifi = '{round(cons_dec_tot / cons_tot, 2)}',
+                                    caidi = ROUND (saidi / saifi, 1)
+                                WHERE oficiul = '{of_ales}';
+                                """)
+            self.conn.commit()
+
+            #Incarc tabelul dec nepr, mongo
+            if self.ofAnNepr.currentText() != "Toate oficiile":
+                tuples = self.db.deconect_app_deconect.find({
+                    "oficiul": self.abrOficiiSec(self.ofAnNepr.currentText())
+                })
+            else:
+                tuples = self.db.deconect_app_deconect.find()
+            column_names = [
+                "oficiul",
+                "nr_ordine",
+                "pt",
+                "fid_04kv",
+                "data_dec",
+                "data_conect",
+                "durata",
+                "cons_cas",
+                "cons_ec",
+                "total",
+                "localitate",
+                "cauza",
+                "termen",
+                "compens",
+                "id",
+            ]
+
+            data = pd.DataFrame(tuples, columns=column_names)
+            header = [
+                "Oficiul",
+                "Nr.",
+                "PT",
+                "Fider",
+                "Data si ora\ndeconectarii",
+                "Data si ora\nconectarii",
+                "Durata\nintreruperii",
+                "Consumatori\ncasnici",
+                "Consumatori\nnon-casnici",
+                "Total",
+                "Localitate",
+                "Cauza\ndeconectarii",
+                "Termen\nreglementat",
+                "Compensatie\n(lei)",
+                "id",
+            ]
+            data.sort_values(by="id", ignore_index=True, ascending=False, inplace=True)
+
+            model = TableModel(data, header)
+
+            tableDec = QTableView()
+            tableDec.setModel(model)
+            tableDec.setStyleSheet('background-color: rgb(200, 200, 200)')
+            tableDec.hideColumn(14)
+            tableDec.setColumnWidth(0, 40)
+            tableDec.setColumnWidth(1, 40)
+            tableDec.setColumnWidth(2, 70)
+            tableDec.setColumnWidth(3, 40)
+            tableDec.setColumnWidth(4, 70)
+            tableDec.setColumnWidth(5, 70)
+            tableDec.setColumnWidth(6, 70)
+            tableDec.setColumnWidth(7, 40)
+            tableDec.setColumnWidth(8, 40)
+            tableDec.setColumnWidth(9, 40)
+            tableDec.resizeRowsToContents()
+            tableDec.verticalHeader().hide()
+
+            tablesFrame = QFrame()
+            tb_vbox = QVBoxLayout()
+            tb_vbox.addWidget(self.tableAnNepr)
+            tb_vbox.addWidget(tableDec)
+            tablesFrame.setLayout(tb_vbox)
+
+            #Incarc tabelul saidi
+            self.cur.execute('SELECT * FROM saidin ORDER BY saidin_id')
+            tuples = self.cur.fetchall()
+            column_names = [
+                "saidi_id",
+                "oficiul",
+                "cons_cas",
+                "cons_ec",
+                "cons_tot",
+                "cons_dec",
+                "t_dec",
+                "nr_dec_tot",
+                "saidi",
+                "saifi",
+                "caidi"
+            ]
+
+            data = pd.DataFrame(tuples, columns=column_names)
+            header = [
+                "saidin_id",
+                "Oficiul",
+                "Cons.casn.",
+                "Cons.non-casn.",
+                "Cons.total",
+                "Cons.total deconect",
+                "Timpul total de deconect",
+                "Nr.total de deconect.",
+                "SAIDI",
+                "SAIFI",
+                "CAIDI"
+            ]
+
+            #Creez tabelul saidin
+            self.tableSaidiN = QTableView()
+            model = TableModel(data, header)
+            self.tableSaidiN.setModel(model)
+            self.tableSaidiN.setStyleSheet('Background-color: rgb(200, 200, 200)')
+            self.tableSaidiN.resizeColumnsToContents()
+            self.tableSaidiN.verticalHeader().hide()
+            self.tableSaidiN.hideColumn(0)
+            self.tableSaidiN.setSelectionBehavior(QAbstractItemView.SelectRows)
+
+            #Creez graficul saidin
+            canvas = FigureCanvas(Figure(figsize=(1, 5), facecolor=(.78, .78, .78)))
+
+            of_labels = []
+            for i in self.ofList:
+                of_labels.append(i)
+
+            of_saidi = []
+            for i in range(len(data)-1):
+                of_saidi.append(int(round(data.at[i, "saidi"])))
+
+            x = np.arange(len(of_labels))
+
+            ax = canvas.figure.subplots()
+            rects = ax.bar(x, of_saidi)
+
+            ax.set_facecolor('#999')
+            ax.set_ylabel("SAIDI")
+            # ax.set_xlabel("Denumire Oficii")
+            ax.set_title("SAIDI pe oficii")
+            ax.set_xticks(x)
+            ax.set_xticklabels(of_labels, rotation=25)
+            # ax.xticks(rotation='vertical')
+
+            ax_Frame = QFrame()
+            ax_vbox = QVBoxLayout()
+            ax_vbox.addWidget(self.tableSaidiN)
+            ax_vbox.addWidget(canvas)
+            ax_Frame.setLayout(ax_vbox)
+            ax.bar_label(rects)
+
+            splitter = QSplitter(Qt.Horizontal)
+            splitter.addWidget(tablesFrame)
+            splitter.addWidget(ax_Frame)
+
+            totalFrame = QFrame()
+            vbox = QVBoxLayout()
+            vbox.addLayout(hbox)
+            vbox.addWidget(splitter)
+            vbox.setStretch(1, 1)
+            totalFrame.setLayout(vbox)
 
 
-        header = ["anlzan21n_id",
-                  "Oficiul",
-                  "PT, Fider",
-                  "Localitate",
-                  "Nr. cons.",
-                  "Ore",
-                  "Nr. deconect.",
-                  "Nr. reglementat",
-                  "Compensatie (lei)"
-                  ]
+            self.anNeprMdi = QMdiSubWindow()
+            self.myMidi.addSubWindow(self.anNeprMdi)
+            self.anNeprMdi.setWidget(totalFrame)
+            self.anNeprMdi.setWindowIcon(QIcon(QPixmap(1, 1)))
+            self.anNeprMdi.setGeometry(100, 100, 1000, 600)
+            self.anNeprMdi.showMaximized()
+            self.anNeprMdi.show()
 
-        self.tableAnNepr = QTableView()
-        model = TableModel(data, header)
-
-        self.tableAnNepr.setModel(model)
-        self.tableAnNepr.setStyleSheet('Background-color: rgb(200, 200, 200)')
-        self.tableAnNepr.resizeColumnsToContents()
-        self.tableAnNepr.verticalHeader().hide()
-        self.tableAnNepr.hideColumn(0)
-        self.tableAnNepr.setSelectionBehavior(QAbstractItemView.SelectRows)
-
-        title = QLabel()
-        title.setText("Analiza anuala a deconectarilor neprogramate, oficiul:")
-        title.setStyleSheet('padding-left: 50%; font-size:24px; color:rgb(191, 60, 60)')
-
-        emptyLb = QLabel("")
-
-        # titleFrame = QFrame()
-        hbox = QHBoxLayout()
-        hbox.addWidget(title)
-        hbox.addWidget(self.ofAnNepr)
-        hbox.addWidget(emptyLb)
-        hbox.addWidget(emptyLb)
-
-        # Calculez datele pentru SAIDI
-        cons_dec_tot = data.sum(axis=0)["nr_cons"]
-        data_ore = pd.DataFrame(pd.to_timedelta(data["ore"]))
-        time_delta = data_ore.sum(axis=0)["ore"]
-        time_sec = time_delta.days * 24 * 60 * 60 + time_delta.seconds
-        time_min = time_sec / 60
-
-        if self.ofAnNepr.currentText() != "Toate oficiile":
-            of_ales = self.abrOficiiSec(self.ofAnNepr.currentText())
+            self.cur.close()
         else:
-            of_ales = 'TOTAL'
-
-        self.cur.execute(f"""SELECT cons_tot FROM saidin
-                            WHERE oficiul = '{of_ales}'""")
-
-        for i in self.cur.fetchall():
-            cons_tot = i[0]
-
-        self.cur.execute(f"""UPDATE saidin
-                             SET cons_dec = '{cons_dec_tot}',
-                                t_dec = '{time_min}',
-                                saidi = '{round(cons_dec_tot * time_min / cons_tot, 2)}'
-                            WHERE oficiul = '{of_ales}';
-                            """)
-        # self.cur.execute("""UPDATE saidin
-        #                              SET cons_dec = 3,
-        #                                 t_dec = '{time_min}',
-        #                                 saidi = 4
-        #                             WHERE oficiul = 'UN';
-        #                             """)
-
-        #Incarc tabelul saidi
-        self.cur.execute('SELECT * FROM saidin ORDER BY saidin_id')
-        tuples = self.cur.fetchall()
-        column_names = [
-            "saidi_id",
-            "oficiul",
-            "cons_cas",
-            "cons_ec",
-            "cons_tot",
-            "cons_dec",
-            "t_dec",
-            "saidi",
-            "saifi",
-            "caifi"
-        ]
-
-        data = pd.DataFrame(tuples, columns=column_names)
-        header = [
-            "saidin_id",
-            "Oficiul",
-            "Cons.casn.",
-            "Cons.non-casn.",
-            "Cons.total",
-            "Cons.dec.",
-            "Timpul dec.",
-            "SAIDI",
-            "SAIFI",
-            "CAIFI"
-        ]
-
-        self.tableSaidiN = QTableView()
-        model = TableModel(data, header)
-        self.tableSaidiN.setModel(model)
-        self.tableSaidiN.setStyleSheet('Background-color: rgb(200, 200, 200)')
-        self.tableSaidiN.resizeColumnsToContents()
-        self.tableSaidiN.verticalHeader().hide()
-        self.tableSaidiN.hideColumn(0)
-        self.tableSaidiN.setSelectionBehavior(QAbstractItemView.SelectRows)
-
-        splitter = QSplitter(Qt.Horizontal)
-        splitter.addWidget(self.tableAnNepr)
-        splitter.addWidget(self.tableSaidiN)
-
-        totalFrame = QFrame()
-        vbox = QVBoxLayout()
-        vbox.addLayout(hbox)
-        vbox.addWidget(splitter)
-        vbox.setStretch(1, 1)
-        totalFrame.setLayout(vbox)
-
-
-        self.anNeprMdi = QMdiSubWindow()
-        self.myMidi.addSubWindow(self.anNeprMdi)
-        self.anNeprMdi.setWidget(totalFrame)
-        self.anNeprMdi.setWindowIcon(QIcon(QPixmap(1, 1)))
-        self.anNeprMdi.setGeometry(100, 100, 1000, 600)
-        self.anNeprMdi.showMaximized()
-        self.anNeprMdi.show()
-
-        self.cur.close()
-
+            self.msSecCall(f"Pentru oficiul {self.ofAnProg.currentText()} "
+                           f"nu exista date!")
 
     def decAnaliza(self):
         # self.abrOficii()
@@ -6389,20 +6832,38 @@ class mainWindow(QMainWindow):
 
                 myLocalitate = self.wsPt.cell(row=i, column=2).value
 
-        #Determin incadrarea termenului urban, rural
+        # Determin incadrarea termenului urban, rural
         myList = myDeltaHour.split(":")
-        difH = ""
-
+        myMinute = int(myList[0]) * 60 + int(myList[1])
+        termText = "Incadrat"
+        compens = 0
         if myLocalitate == None or bool(re.search("or[.]", myLocalitate)):
-            if int(myList[0]) > 6:
-                difH = int(myList[0]) - 6
+            if myMinute > 6 * 60:
+                difMinute = myMinute - 6 * 60
+                termText = "Depasit cu: " + str(round(difMinute / 60)) + "H " + myList[1] + "min."
+                if difMinute / 60 <= 3:
+                    k = 1
+                elif (difMinute / 60 > 3) and (difMinute / 60 <= 6):
+                    k = 4
+                elif (difMinute / 60 > 6) and (difMinute / 60 <= 9):
+                    k = 7
+                elif (difMinute / 60 > 9):
+                    k = 10
+                compens = round(0.01 * 160 * 2.04 * k, 2)
+
         else:
-            if int(myList[0]) > 12:
-                difH = int(myList[0]) - 12
-        if difH != "":
-            termText = "Depasit cu: " + str(difH) + "H " + myList[1] + "min."
-        else:
-            termText = "Incadrat"
+            if myMinute > 12 * 60:
+                difMinute = myMinute - 12 * 60
+                termText = "Depasit cu: " + str(round(difMinute / 60)) + "H " + myList[1] + "min."
+                if difMinute / 60 <= 3:
+                    k = 1
+                elif (difMinute / 60 > 3) and (difMinute / 60 <= 6):
+                    k = 4
+                elif (difMinute / 60 > 6) and (difMinute / 60 <= 9):
+                    k = 7
+                elif (difMinute / 60 > 9):
+                    k = 10
+                compens = round(0.01 * 160 * 2.04 * k, 2)
 
         #Working with MongoDB
         for i in self.db.deconect_app_deconect.find().sort("_id", -1).limit(1):
@@ -6422,6 +6883,7 @@ class mainWindow(QMainWindow):
             "total": str(self.fazaNrCas + self.fazaNrEc),
             "localitate": myLocalitate,
             "cauza": self.cauzaCombo.currentText(),
+            "compens": compens,
             "termen": termText,
         })
 
