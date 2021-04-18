@@ -573,22 +573,28 @@ class Worker(QRunnable):
 
     def run(self):
         mainWindow.loadMongo(self)
-        change_stream = self.client.djUN.bir_app_al.watch([{
-            '$match': {
-                    'operationType': {'$in': ['update']}
-            }}, {
-            '$project': {
-                'fullDocument_id': '$fullDocument._id',
-                'pregatire': '$fullDocument.pregatire',
-                'admitere': '$fullDocument.admitere',
-                'terminare': '$fullDocument.terminare',
-            }
-        }], full_document='updateLookup')
-        for change in change_stream:
-            if change['pregatire'] == 'Cerere la pregatire' \
-                or change['admitere'] == 'Cerere la admitere' \
-                or change['terminare'] == 'Cerere la terminare':
-                self.signal.finished.emit()
+
+        myTime = datetime.datetime.now()
+        for i in self.client.djUN.list_collection_names():
+            if i == "al_" + str(myTime.year) + "_" + str(myTime.month):
+                reg_alw = self.client.djUN.i
+
+                change_stream = reg_alw.watch([{
+                    '$match': {
+                            'operationType': {'$in': ['update']}
+                    }}, {
+                    '$project': {
+                        'fullDocument_id': '$fullDocument._id',
+                        'pregatire': '$fullDocument.pregatire',
+                        'admitere': '$fullDocument.admitere',
+                        'terminare': '$fullDocument.terminare',
+                    }
+                }], full_document='updateLookup')
+                for change in change_stream:
+                    if change['pregatire'] == 'Cerere la pregatire' \
+                        or change['admitere'] == 'Cerere la admitere' \
+                        or change['terminare'] == 'Cerere la terminare':
+                        self.signal.finished.emit()
 
 class WorkerSound(QRunnable):
 
@@ -2271,7 +2277,7 @@ class mainWindow(QMainWindow):
     def okLink(self):
         self.data.at[self.modRow, 18] = self.linkLine.text()
         if self.data.at[self.modRow, 1] != "":
-            self.db.bir_app_al.update_one({
+            self.reg_al.update_one({
                 "nr_ds": self.data.at[self.modRow, 1]
             }, {
                 "$set": {
@@ -2279,7 +2285,7 @@ class mainWindow(QMainWindow):
                 }
             })
         elif self.data.at[self.modRow, 2] != "":
-            self.db.bir_app_al.update_one({
+            self.reg_al.update_one({
                 "nr_al": self.data.at[self.modRow, 2]
             }, {
                 "$set": {
@@ -3330,7 +3336,7 @@ class mainWindow(QMainWindow):
 
     #Functie populez Biroul dispecerului cu Autorizatie
     def centrAlPop(self):
-        # self.alFunc()
+        self.alFunc()
         global elSoundContr
         elSoundContr = True
 
@@ -3345,121 +3351,100 @@ class mainWindow(QMainWindow):
         #         myColumn.append(self.wsRegAl.cell(row=i, column=j).value)
         #     self.centralReg.append(myColumn)
         # self.data = pd.DataFrame(self.centralReg)
-        self.data = pd.DataFrame(self.db.bir_app_al.find())
-        myColumn = self.data.pop("_id")
-        self.data.insert(20, "_id", myColumn)
-        myColumn = self.data.pop("id")
-        self.data.insert(20, "id", myColumn)
-        self.data.columns = range(21)
-        # print(self.data.at[2, 19])
-        self.data.sort_index(ascending=False, inplace=True, ignore_index=True)
-        header = ["Oficiul", "Nr. \nDS", "Nr. \nAL", "Instalatia", \
-                  "PT", "Localitatea", "Nr. \nFider", "Lucrarile\nefectuate", \
-                  "Sef de lucrari\nsau supravegh.\n(nume, prenum.)\ngrupa TS)", \
-                  "Membrii form.\nce lucr.pe AL,DS\n(nume, prenum.,\n grupa TS)",
-                  "Lucratorul care\n a emis AL (DS)\n(nume, prenum.,\ngrupa TS)",\
-                  "Cu deconectare",\
-                  "Masurile tehnice\n de asigurare a TS\ncu indic. deconect.\nlocurilor de\nmont legaturilor\n la pamint",\
-                  "Semnatura\nlucratorilor\ncare au executat \ninstr. periodica \nsi care au\nfost instruiti",\
-                  "Starea", "Pregat. locului\nde munca (data,\nora)", "Admiterea\nechipei (data,\nora)",
-                  "Terminarea\nlucrarilor (data,\nora)", "Linkul", "_id", "id"]
-        self.table = QTableView()
-        self.model = TableModel(self.data, header)
+        try:
+            self.data = pd.DataFrame(self.reg_al.find())
+            myColumn = self.data.pop("_id")
+            self.data.insert(20, "_id", myColumn)
+            myColumn = self.data.pop("id")
+            self.data.insert(20, "id", myColumn)
+            self.data.columns = range(21)
+            # print(self.data.at[2, 19])
+            self.data.sort_index(ascending=False, inplace=True, ignore_index=True)
+            header = ["Oficiul", "Nr. \nDS", "Nr. \nAL", "Instalatia", \
+                      "PT", "Localitatea", "Nr. \nFider", "Lucrarile\nefectuate", \
+                      "Sef de lucrari\nsau supravegh.\n(nume, prenum.)\ngrupa TS)", \
+                      "Membrii form.\nce lucr.pe AL,DS\n(nume, prenum.,\n grupa TS)",
+                      "Lucratorul care\n a emis AL (DS)\n(nume, prenum.,\ngrupa TS)",\
+                      "Cu deconectare",\
+                      "Masurile tehnice\n de asigurare a TS\ncu indic. deconect.\nlocurilor de\nmont legaturilor\n la pamint",\
+                      "Semnatura\nlucratorilor\ncare au executat \ninstr. periodica \nsi care au\nfost instruiti",\
+                      "Starea", "Pregat. locului\nde munca (data,\nora)", "Admiterea\nechipei (data,\nora)",
+                      "Terminarea\nlucrarilor (data,\nora)", "Linkul", "_id", "id"]
+            self.table = QTableView()
+            self.model = TableModel(self.data, header)
 
-        self.table.setModel(self.model)
-        self.table.setWordWrap(True)
-        self.table.setTextElideMode(Qt.ElideMiddle)
-        self.table.resizeRowsToContents()
-        self.table.resizeColumnsToContents()
-        self.table.hideColumn(19)
-        self.table.hideColumn(20)
-        for i in range(20):
-            self.table.setRowHeight(i, 100)
-        # self.table.setColumnWidth(1, 50)
-        # self.table.setColumnWidth(2, 100)
-        for i in range(3, 18):
-            self.table.setColumnWidth(i, 110)
-        self.table.setColumnWidth(6, 50)
-        # self.table.setColumnWidth(20, 150)
-        # self.table.setColumnWidth(18, 170)
-        self.table.setStyleSheet("Background-color: rgb(200, 200, 200)")
-        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.table.verticalHeader().hide()
+            self.table.setModel(self.model)
+            self.table.setWordWrap(True)
+            self.table.setTextElideMode(Qt.ElideMiddle)
+            self.table.resizeRowsToContents()
+            self.table.resizeColumnsToContents()
+            self.table.hideColumn(19)
+            self.table.hideColumn(20)
+            for i in range(20):
+                self.table.setRowHeight(i, 100)
+            # self.table.setColumnWidth(1, 50)
+            # self.table.setColumnWidth(2, 100)
+            for i in range(3, 18):
+                self.table.setColumnWidth(i, 110)
+            self.table.setColumnWidth(6, 50)
+            # self.table.setColumnWidth(20, 150)
+            # self.table.setColumnWidth(18, 170)
+            self.table.setStyleSheet("Background-color: rgb(200, 200, 200)")
+            self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
+            self.table.verticalHeader().hide()
 
-        regFrame = QFrame()
-        regAlTitle = QLabel()
+            regFrame = QFrame()
+            regAlTitle = QLabel()
 
-        regAlTitle.setText("Registru de autorizatii, oficiul:")
-        regAlTitle.setStyleSheet("padding-left: 50%; font-size:24px; color:rgb(191, 60, 60)")
-        # regAlTitle.move(0, 100)
-        # self.loadOficii()
-        ofList = ['Toate oficiile']
-        ofList = ofList + self.ofList
-        self.ofCombo = QComboBox()
-        self.ofCombo.addItems(ofList)
-        # self.ofComboReg.setStyleSheet("margin-right:1400%")
-        self.ofCombo.setStyleSheet("padding-left:10%; font-size:12px")
-        self.ofCombo.setFixedHeight(25)
-        self.ofCombo.setFixedWidth(100)
-        self.ofCombo.currentTextChanged.connect(self.ofChangeReg)
+            regAlTitle.setText("Registru de autorizatii, oficiul:")
+            regAlTitle.setStyleSheet("padding-left: 50%; font-size:24px; color:rgb(191, 60, 60)")
+            # regAlTitle.move(0, 100)
+            # self.loadOficii()
+            ofList = ['Toate oficiile']
+            ofList = ofList + self.ofList
+            self.ofCombo = QComboBox()
+            self.ofCombo.addItems(ofList)
+            # self.ofComboReg.setStyleSheet("margin-right:1400%")
+            self.ofCombo.setStyleSheet("padding-left:10%; font-size:12px")
+            self.ofCombo.setFixedHeight(25)
+            self.ofCombo.setFixedWidth(100)
+            self.ofCombo.currentTextChanged.connect(self.ofChangeReg)
 
-        # refreshBt = QPushButton("Refresh")
-        # refreshBt.setFixedSize(110, 29)
-        # refreshBt.clicked.connect(self.refreshAl)
+            # refreshBt = QPushButton("Refresh")
+            # refreshBt.setFixedSize(110, 29)
+            # refreshBt.clicked.connect(self.refreshAl)
 
-        emptyLb = QLabel("")
+            emptyLb = QLabel("")
 
-        hbox = QHBoxLayout()
-        hbox.addWidget(regAlTitle)
-        hbox.addWidget(self.ofCombo)
-        # hbox.addWidget(refreshBt)
-        hbox.addWidget(emptyLb)
-        hbox.addWidget(emptyLb)
-        hbox.addWidget(emptyLb)
-        hbox.addWidget(emptyLb)
-        hbox.addWidget(emptyLb)
-        hbox.setStretch(1, 1)
+            hbox = QHBoxLayout()
+            hbox.addWidget(regAlTitle)
+            hbox.addWidget(self.ofCombo)
+            # hbox.addWidget(refreshBt)
+            hbox.addWidget(emptyLb)
+            hbox.addWidget(emptyLb)
+            hbox.addWidget(emptyLb)
+            hbox.addWidget(emptyLb)
+            hbox.addWidget(emptyLb)
+            hbox.setStretch(1, 1)
 
-        vbox = QVBoxLayout()
-        vbox.addLayout(hbox)
-        vbox.addWidget(self.table)
-        regFrame.setLayout(vbox)
+            vbox = QVBoxLayout()
+            vbox.addLayout(hbox)
+            vbox.addWidget(self.table)
+            regFrame.setLayout(vbox)
 
-        self.tabWindow = QMdiSubWindow()
-        self.myMidi.addSubWindow(self.tabWindow)
-        self.tabWindow.setWindowIcon(QIcon(QPixmap(1, 1)))
-        self.tabWindow.setWidget(regFrame)
-        self.tabWindow.setGeometry(100, 100, 1000, 600)
-        self.tabWindow.showMaximized()
-        self.tabWindowControl = True
-        self.tabWindow.show()
+            self.tabWindow = QMdiSubWindow()
+            self.myMidi.addSubWindow(self.tabWindow)
+            self.tabWindow.setWindowIcon(QIcon(QPixmap(1, 1)))
+            self.tabWindow.setWidget(regFrame)
+            self.tabWindow.setGeometry(100, 100, 1000, 600)
+            self.tabWindow.showMaximized()
+            self.tabWindowControl = True
+            self.tabWindow.show()
 
-        self.table.doubleClicked.connect(self.showAl)
+            self.table.doubleClicked.connect(self.showAl)
+        except AttributeError:
+            self.msSecCall("Nu exista date pentru aceasta perioada in registru DS/AL!")
 
-    # def mongoWatch(self):
-    #     pipeline = [
-    #         {"$match": {"operationType": {"$in": ["insert"]}}}
-    #     ]
-    #     for change in self.db.reg_al_un.watch(pipeline, max_await_time_ms=30000):
-    #         print(change)
-
-        # cursor = self.db.reg_al_un.watch(pipeline=pipeline, full_document='updateLookup')
-        # document = next(cursor)
-
-        # with self.db.reg_al_un.watch() as stream:
-        #     while stream.alive:
-        #         change = stream.try_next()
-        #         # Note that the ChangeStream's resume token may be updated
-        #         # even when no changes are returned.
-        #         print("Current resume token: %r" % (stream.resume_token,))
-        #         if change is not None:
-        #             print("Change document: %r" % (change,))
-        #             continue
-        #         # We end up here when there are no recent changes.
-        #         # Sleep for a while before trying again to avoid flooding
-        #         # the server with getMore requests when no changes are
-        #         # available.
-        #         time.sleep(10)
 
     def changeForm(self):
         if self.formCheck.isChecked() == True:
@@ -3551,13 +3536,13 @@ class mainWindow(QMainWindow):
     def showAl(self):
         self.modRow = self.table.currentIndex().row()
         if self.data.at[self.modRow, 1] != "":
-            for i in self.db.bir_app_al.find({"nr_ds": self.data.at[self.modRow, 1]}):
+            for i in self.reg_al.find({"nr_ds": self.data.at[self.modRow, 1]}):
                 if i["link"] != "":
                     webbrowser.open(i["link"])
                 else:
                     self.msSecCall("Nu exista link!")
         elif self.data.at[self.modRow, 2] != "":
-            for i in self.db.bir_app_al.find({"nr_al": self.data.at[self.modRow, 2]}):
+            for i in self.reg_al.find({"nr_al": self.data.at[self.modRow, 2]}):
                 if i["link"] != "":
                     webbrowser.open(i["link"])
                 else:
@@ -3783,11 +3768,11 @@ class mainWindow(QMainWindow):
         try:
             try:
                 if self.data.at[self.modRow, 1] != "":
-                    myList = self.db.bir_app_al.find_one({"nr_ds": self.data.at[self.modRow, 1]})["link"].split("/")
-                    myOriginal = self.db.bir_app_al.find_one({"nr_ds": self.data.at[self.modRow, 1]})["link"]
+                    myList = self.reg_al.find_one({"nr_ds": self.data.at[self.modRow, 1]})["link"].split("/")
+                    myOriginal = self.reg_al.find_one({"nr_ds": self.data.at[self.modRow, 1]})["link"]
                 if self.data.at[self.modRow, 2] != "":
-                    myList = self.db.bir_app_al.find_one({"nr_al": self.data.at[self.modRow, 2]})["link"].split("/")
-                    myOriginal = self.db.bir_app_al.find_one({"nr_al": self.data.at[self.modRow, 2]})["link"]
+                    myList = self.reg_al.find_one({"nr_al": self.data.at[self.modRow, 2]})["link"].split("/")
+                    myOriginal = self.reg_al.find_one({"nr_al": self.data.at[self.modRow, 2]})["link"]
 
                 #Lucrez cu google Drive API v3
                 SCOPES = ['https://www.googleapis.com/auth/drive']
@@ -3821,7 +3806,7 @@ class mainWindow(QMainWindow):
                 self.data.at[self.modRow, 18] = "https://drive.google.com/file/d/" + \
                                                 file.get('id') + "/view?usp=sharing"
                 if self.data.at[self.modRow, 1] != "":
-                    self.db.bir_app_al.update_one({
+                    self.reg_al.update_one({
                         "nr_ds": self.data.at[self.modRow, 1]
                     }, {
                         "$set": {
@@ -3830,7 +3815,7 @@ class mainWindow(QMainWindow):
                         }
                     })
                 if self.data.at[self.modRow, 2] != "":
-                    self.db.bir_app_al.update_one({
+                    self.reg_al.update_one({
                         "nr_al": self.data.at[self.modRow, 2]
                     }, {
                         "$set": {
@@ -3869,9 +3854,9 @@ class mainWindow(QMainWindow):
         myDtValidator = QRegExpValidator(rxDt)
         self.linkLine.setValidator(myDtValidator)
         if self.data.at[self.modRow, 1] != "":
-            self.linkLine.setText(self.db.bir_app_al.find_one({"nr_ds": self.data.at[self.modRow, 1]})["link"])
+            self.linkLine.setText(self.reg_al.find_one({"nr_ds": self.data.at[self.modRow, 1]})["link"])
         if self.data.at[self.modRow, 2] != "":
-            self.linkLine.setText(self.db.bir_app_al.find_one({"nr_al": self.data.at[self.modRow, 2]})["link"])
+            self.linkLine.setText(self.reg_al.find_one({"nr_al": self.data.at[self.modRow, 2]})["link"])
 
         setRegButton = QPushButton()
         setRegButton.setIcon(QIcon("folder.ico"))
@@ -3930,7 +3915,7 @@ class mainWindow(QMainWindow):
             self.data.at[self.modRow, 13] = self.data.at[self.modRow, 13] + "\n" + self.nameFMenu
 
         if self.data.at[self.modRow, 1] != "":
-            self.db.bir_app_al.update_one({
+            self.reg_al.update_one({
                 "nr_ds": self.data.at[self.modRow, 1]
             }, {
                 "$set": {
@@ -3938,7 +3923,7 @@ class mainWindow(QMainWindow):
                 }
             })
         elif self.data.at[self.modRow, 2] != "":
-            self.db.bir_app_al.update_one({
+            self.reg_al.update_one({
                 "nr_al": self.data.at[self.modRow, 2]
             }, {
                 "$set": {
@@ -3972,7 +3957,7 @@ class mainWindow(QMainWindow):
                                                 myDateTime.strftime("%d.%m.%y")
 
                 if self.data.at[self.modRow, 1] != "":
-                    self.db.bir_app_al.update_one({
+                    self.reg_al.update_one({
                         "nr_ds": self.data.at[self.modRow, 1]
                     }, {
                         "$set": {
@@ -3980,7 +3965,7 @@ class mainWindow(QMainWindow):
                         }
                     })
                 elif self.data.at[self.modRow, 2] != "":
-                    self.db.bir_app_al.update_one({
+                    self.reg_al.update_one({
                         "nr_al": self.data.at[self.modRow, 2]
                     }, {
                         "$set": {
@@ -4000,7 +3985,7 @@ class mainWindow(QMainWindow):
                                                 "\n" + self.uCombo.currentText()
 
                 if self.data.at[self.modRow, 1] != "":
-                    self.db.bir_app_al.update_one({
+                    self.reg_al.update_one({
                         "nr_ds": self.data.at[self.modRow, 1]
                     }, {
                         "$set": {
@@ -4008,7 +3993,7 @@ class mainWindow(QMainWindow):
                         }
                     })
                 elif self.data.at[self.modRow, 2] != "":
-                    self.db.bir_app_al.update_one({
+                    self.reg_al.update_one({
                         "nr_al": self.data.at[self.modRow, 2]
                     }, {
                         "$set": {
@@ -4252,11 +4237,11 @@ class mainWindow(QMainWindow):
     def stergeTrig(self):
         # Sterg la MongoDB
         if self.data.at[self.modRow, 1] != "":
-            self.db.bir_app_al.delete_one({
+            self.reg_al.delete_one({
                 "nr_ds": self.data.at[self.modRow, 1]
             })
         elif self.data.at[self.modRow, 2] != "":
-            self.db.bir_app_al.delete_one({
+            self.reg_al.delete_one({
                 "nr_al": self.data.at[self.modRow, 2]
             })
         self.table.hideRow(self.modRow)
@@ -4280,7 +4265,7 @@ class mainWindow(QMainWindow):
 
                     #Fac update la MongoDB, ulterior excel
                     if self.data.at[self.modRow, 1] != "":
-                        self.db.bir_app_al.update_one({
+                        self.reg_al.update_one({
                             "nr_ds": self.data.at[self.modRow, 1]
                         }, {
                             "$set": {
@@ -4289,7 +4274,7 @@ class mainWindow(QMainWindow):
                             }
                         })
                         # Fac update la excel registru
-                        for i in self.db.bir_app_al.find({"nr_ds": self.data.at[self.modRow, 1]}):
+                        for i in self.reg_al.find({"nr_ds": self.data.at[self.modRow, 1]}):
                             self.wsRegAl.cell(row=myMaxRow, column=1).value = i["oficiul"]
                             self.wsRegAl.cell(row=myMaxRow, column=1).alignment = \
                                 Alignment(horizontal="center", vertical="center", wrap_text=True)
@@ -4346,7 +4331,7 @@ class mainWindow(QMainWindow):
                                 Alignment(horizontal="center", vertical="center", wrap_text=True)
 
                     elif self.data.at[self.modRow, 2] != "":
-                        self.db.bir_app_al.update_one({
+                        self.reg_al.update_one({
                             "nr_al": self.data.at[self.modRow, 2]
                         }, {
                             "$set": {
@@ -4355,7 +4340,7 @@ class mainWindow(QMainWindow):
                             }
                         })
                         # Fac update la excel registru
-                        for i in self.db.bir_app_al.find({"nr_al": self.data.at[self.modRow, 2]}):
+                        for i in self.reg_al.find({"nr_al": self.data.at[self.modRow, 2]}):
                             self.wsRegAl.cell(row=myMaxRow, column=1).value = i["oficiul"]
                             self.wsRegAl.cell(row=myMaxRow, column=1).alignment = \
                                 Alignment(horizontal="center", vertical="center", wrap_text=True)
@@ -4442,7 +4427,7 @@ class mainWindow(QMainWindow):
                         myDateTime.strftime("%d.%m.%y %H:%M")+ "\n" + self.uCombo.currentText()
 
                     # Fac update la MongoDB dupa introducerea datelor la "Nou inregistrata"
-                    self.db.bir_app_al.update_one({
+                    self.reg_al.update_one({
                         "nr_al": self.data.at[self.modRow, 2]
                     }, {
                         "$set": {
@@ -4452,7 +4437,7 @@ class mainWindow(QMainWindow):
                     #Fac update la registru excel
                     for i in range(5, self.wsRegAl.max_row + 1):
                         if self.wsRegAl.cell(row=i, column=3).value == self.data.at[self.modRow, 2]:
-                            for j in self.db.bir_app_al.find({"nr_al": self.data.at[self.modRow, 2]}):
+                            for j in self.reg_al.find({"nr_al": self.data.at[self.modRow, 2]}):
                                 self.wsRegAl.cell(row=i, column=17).value = j["admitere"]
                                 self.wsRegAl.cell(row=i, column=17).alignment = \
                                     Alignment(horizontal="center", vertical="center", wrap_text=True)
@@ -4486,7 +4471,7 @@ class mainWindow(QMainWindow):
 
                     # Fac update la MongoDB dupa introducerea datelor la "Nou inregistrata"
                     if self.data.at[self.modRow, 1] != "":
-                        self.db.bir_app_al.update_one({
+                        self.reg_al.update_one({
                             "nr_ds": self.data.at[self.modRow, 1]
                         }, {
                             "$set": {
@@ -4496,7 +4481,7 @@ class mainWindow(QMainWindow):
                             }
                         })
                     elif self.data.at[self.modRow, 2] != "":
-                        self.db.bir_app_al.update_one({
+                        self.reg_al.update_one({
                             "nr_al": self.data.at[self.modRow, 2]
                         }, {
                             "$set": {
@@ -4552,7 +4537,7 @@ class mainWindow(QMainWindow):
 
                     # Fac update la MongoDB, ulterior excel
                     if self.data.at[self.modRow, 1] != "":
-                        self.db.bir_app_al.update_one({
+                        self.reg_al.update_one({
                             "nr_ds": self.data.at[self.modRow, 1]
                         }, {
                             "$set": {
@@ -4564,12 +4549,12 @@ class mainWindow(QMainWindow):
                         # Fac update la registru excel
                         for i in range(5, self.wsRegAl.max_row + 1):
                             if self.wsRegAl.cell(row=i, column=2).value == self.data.at[self.modRow, 1]:
-                                for j in self.db.bir_app_al.find({"nr_ds": self.data.at[self.modRow, 1]}):
+                                for j in self.reg_al.find({"nr_ds": self.data.at[self.modRow, 1]}):
                                     self.wsRegAl.cell(row=i, column=18).value = j["terminare"]
                                     self.wsRegAl.cell(row=i, column=18).alignment = \
                                         Alignment(horizontal="center", vertical="center", wrap_text=True)
                     elif self.data.at[self.modRow, 2] != "":
-                        self.db.bir_app_al.update_one({
+                        self.reg_al.update_one({
                             "nr_al": self.data.at[self.modRow, 2]
                         }, {
                             "$set": {
@@ -4581,7 +4566,7 @@ class mainWindow(QMainWindow):
                         # Fac update la registru excel
                         for i in range(5, self.wsRegAl.max_row + 1):
                             if self.wsRegAl.cell(row=i, column=3).value == self.data.at[self.modRow, 2]:
-                                for j in self.db.bir_app_al.find({"nr_al": self.data.at[self.modRow, 2]}):
+                                for j in self.reg_al.find({"nr_al": self.data.at[self.modRow, 2]}):
                                     self.wsRegAl.cell(row=i, column=18).value = j["terminare"]
                                     self.wsRegAl.cell(row=i, column=18).alignment = \
                                         Alignment(horizontal="center", vertical="center", wrap_text=True)
@@ -5140,18 +5125,44 @@ class mainWindow(QMainWindow):
         except AttributeError:
             pass
 
-    # def alFunc(self):
-    #     myTime = datetime.datetime.now()
-    #     for i in self.db.list_collection_names():
-    #         if i == "al_" + myTime.year + "_" + myTime.month:
-    #             self.reg_al = self.db.i
+    def alFunc(self):
+        myTime = datetime.datetime.now()
+        myDelta = datetime.timedelta(days=18)
+        myMonthMinus = myTime - myDelta
+
+        myTime_year = myTime.strftime("%Y")
+        myTime_month = myTime.strftime("%m")
+
+        myMthMinus_year = myMonthMinus.strftime("%Y")
+        myMthMinus_month = myMonthMinus.strftime("%m")
+
+        self.reg_al = None
+
+        for i in self.db.list_collection_names():
+            if i == "al_" + myTime_year + "_" + myTime_month:
+                self.reg_al = self.db.i
+
+        if self.reg_al == None:
+            myVar = "al_" + myTime_year + "_" + myTime_month
+            myVarMin = "al_" + myMthMinus_year + "_" + \
+                       myMthMinus_month
+            for k in self.db.myVarMin.find():
+                print(k)
+            for j in self.db.myVarMin.find().sort("_id", -1).limit(1):
+                myNumb = int(j["id"])
+                self.reg_al = self.db.myVar
+                self.reg_al.insert_one({
+                    "id": myNumb
+                })
+
 
     #  Functie pentru popularea Registrului de autorizatii
     def regPop(self):
+        self.alFunc()
         self.abrOficii()
         myDateTime = datetime.datetime.now()
 
-        for i in self.db.bir_app_al.find().sort("_id", -1).limit(1):
+        for i in self.reg_al.find().sort("_id", -1).limit(1):
             self.idAlDs = int(i["id"]) + 1
 
         self.searchComma = re.search(",", self.ptLine.text())
@@ -5231,7 +5242,7 @@ class mainWindow(QMainWindow):
                         dlg = QFileDialog()
                         self.fileName = dlg.getOpenFileName()
                     link = self.fileName[0]
-                    self.db.bir_app_al.insert_one({
+                    self.reg_al.insert_one({
                         "id": self.idAlDs,
                         "oficiul": self.ofVar,
                         "nr_ds": self.idAlDs,
@@ -5260,7 +5271,7 @@ class mainWindow(QMainWindow):
                     dlg = QFileDialog()
                     self.fileName = dlg.getOpenFileName()
                     link = self.fileName[0]
-                    self.db.bir_app_al.insert_one({
+                    self.reg_al.insert_one({
                         "id": self.idAlDs,
                         "oficiul": self.ofVar,
                         "nr_ds": "",
@@ -5317,7 +5328,7 @@ class mainWindow(QMainWindow):
         self.data.at[self.modRow, 12] = self.masLine_corect.text()
 
 
-        self.db.bir_app_al.update_one({"_id": self.data.at[self.modRow, 19]},
+        self.reg_al.update_one({"_id": self.data.at[self.modRow, 19]},
                                      {"$set": {
                                          "oficiul": self.data.at[self.modRow, 0],
                                          # "nr_ds": self.data.at[self.modRow, 1],
