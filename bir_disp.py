@@ -5140,19 +5140,37 @@ class mainWindow(QMainWindow):
 
         for i in self.db.list_collection_names():
             if i == "al_" + myTime_year + "_" + myTime_month:
-                self.reg_al = self.db.i
+                self.reg_al = self.db[i]
 
         if self.reg_al == None:
             myVar = "al_" + myTime_year + "_" + myTime_month
             myVarMin = "al_" + myMthMinus_year + "_" + \
                        myMthMinus_month
-            for k in self.db.myVarMin.find():
-                print(k)
-            for j in self.db.myVarMin.find().sort("_id", -1).limit(1):
+
+            for j in self.db[myVarMin].find().sort("_id", -1).limit(1):
                 myNumb = int(j["id"])
-                self.reg_al = self.db.myVar
+                self.reg_al = self.db[myVar]
                 self.reg_al.insert_one({
-                    "id": myNumb
+                    "id": myNumb,
+                    "oficiul": "",
+                    "nr_ds": "",
+                    "nr_al": "",
+                    "instalatia": "",
+                    "pt": "",
+                    "localitatea": "",
+                    "fid_nr": "",
+                    "lucrarile": "",
+                    "sef": "",
+                    "mem_ech": "",
+                    "emitent": "",
+                    "cu_dec": "",
+                    "mas_teh": "",
+                    "semnatura": "",
+                    "starea": "",
+                    "pregatire": "",
+                    "admitere": "",
+                    "terminare": "",
+                    "link": ""
                 })
 
 
