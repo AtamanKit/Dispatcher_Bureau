@@ -749,6 +749,7 @@ class mainWindow(QMainWindow):
 
         #Working with dates 'registru autorizatii'
         self.alTime = datetime.datetime.now()
+        self.alYear = self.alTime.strftime('%Y')
         self.alMonth = self.alTime.strftime('%m')
 
         self.mnCombo = QComboBox()
@@ -6276,13 +6277,18 @@ class mainWindow(QMainWindow):
             self.conn.commit()
 
             #Incarc tabelul dec nepr, mongo
+#             print(f"""decnepr_{self.alYear}_\
+# {self.MonthToNumb(self.decNeprCombo.currentText())}""")
             if self.ofAnNepr.currentText() != "Toate oficiile":
-                tuples = self.db.deconect_app_deconect.find({
-                    "oficiul": self.abrOficiiSec(self.ofAnNepr.currentText())
-                })
+                self.cur.execute(f"""SELECT * FROM decnepr_{self.alYear}_\
+{self.MonthToNumb(self.decNeprCombo.currentText())} WHERE oficiul=\
+'{self.abrOficiiSec(self.ofAnNepr.currentText())}'""")
             else:
-                tuples = self.db.deconect_app_deconect.find()
+                self.cur.execute(f"""SELECT * FROM decnepr_{self.alYear}_\
+{self.MonthToNumb(self.decNeprCombo.currentText())}""")
+            tuples = self.cur.fetchall()
             column_names = [
+                "decnepr_id",
                 "oficiul",
                 "nr_ordine",
                 "pt",
@@ -6297,11 +6303,11 @@ class mainWindow(QMainWindow):
                 "cauza",
                 "termen",
                 "compens",
-                "id",
             ]
 
             data = pd.DataFrame(tuples, columns=column_names)
             header = [
+                "decnepr_id",
                 "Oficiul",
                 "Nr.",
                 "PT",
@@ -6309,35 +6315,37 @@ class mainWindow(QMainWindow):
                 "Data si ora\ndeconectarii",
                 "Data si ora\nconectarii",
                 "Durata\nintreruperii",
-                "Consumatori\ncasnici",
-                "Consumatori\nnon-casnici",
+                "Cons.\ncas.",
+                "Cons.\nn-cas.",
                 "Total",
                 "Localitate",
                 "Cauza\ndeconectarii",
                 "Termen\nreglementat",
                 "Compensatie\n(lei)",
-                "id",
             ]
-            data.sort_values(by="id", ignore_index=True, ascending=False, inplace=True)
+            data.sort_values(by="decnepr_id", ignore_index=True, ascending=False, inplace=True)
 
             model = TableModel(data, header)
 
             tableDec = QTableView()
             tableDec.setModel(model)
             tableDec.setStyleSheet('background-color: rgb(200, 200, 200)')
-            tableDec.hideColumn(14)
-            tableDec.setColumnWidth(0, 40)
+            tableDec.hideColumn(0)
+            # tableDec.setColumnWidth(0, 40)
             tableDec.setColumnWidth(1, 40)
-            tableDec.setColumnWidth(2, 70)
-            tableDec.setColumnWidth(3, 40)
+            tableDec.setColumnWidth(2, 40)
+            tableDec.setColumnWidth(3, 70)
             tableDec.setColumnWidth(4, 70)
-            tableDec.setColumnWidth(5, 70)
-            tableDec.setColumnWidth(6, 70)
-            tableDec.setColumnWidth(7, 40)
+            tableDec.setColumnWidth(5, 100)
+            tableDec.setColumnWidth(6, 100)
+            tableDec.setColumnWidth(7, 70)
             tableDec.setColumnWidth(8, 40)
             tableDec.setColumnWidth(9, 40)
+            tableDec.setColumnWidth(10, 40)
+            # tableDec.setColumnWidth(14, 70)
             tableDec.resizeRowsToContents()
             tableDec.verticalHeader().hide()
+            tableDec.setSelectionBehavior(QAbstractItemView.SelectRows)
 
             yTitle = QLabel("Tabelul anual:")
             yTitle.setStyleSheet('font-weight: bold; padding-left: 10%')
@@ -6439,9 +6447,16 @@ class mainWindow(QMainWindow):
             ax_Frame.setLayout(ax_vbox)
             ax.bar_label(rects)
 
+            myScr = app.primaryScreen()
+            myScrAv = myScr.availableGeometry()
+            myWith = myScrAv.width()
+            print(myWith)
+
             splitter = QSplitter(Qt.Horizontal)
             splitter.addWidget(tablesFrame)
             splitter.addWidget(ax_Frame)
+            splitter.handle(1).setStyleSheet('Background-color: rgb(191, 60, 60)')
+            splitter.setSizes([myWith - myWith/2.2, myWith/2.2])
 
             totalFrame = QFrame()
             vbox = QVBoxLayout()
