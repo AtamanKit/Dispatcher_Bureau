@@ -618,19 +618,6 @@ class mainWindow(QMainWindow):
         self.setGeometry(100, 100, 1250, 720)
         # self.myWindow.setStyleSheet('background-color: #6e6e6e')
         self.myMidi.setBackground(QBrush(QColor(100, 100, 100)))
-        # self.statusBar = QStatusBar(self)
-        # self.statusBar.showMessage("Test")
-        # self.statusBar.setStyleSheet("background-color: rgb(100, 100, 100)")
-        #
-        # self.setStatusBar(self.statusBar)
-
-        # qtRectangle = self.frameGeometry()
-        # centerPoint = QDesktopWidget().availableGeometry().center()
-        # qtRectangle.moveCenter(centerPoint)
-        # self.move(qtRectangle.topLeft())
-
-        # toolbar = QToolBar("My main toolbar")
-        # self.addToolBar(toolbar)
 
         self.showMaximized()
 
@@ -760,7 +747,90 @@ class mainWindow(QMainWindow):
         self.threadpool.start(worker)
         worker.signal.finished.connect(self.msCerere)
 
+        #Working with dates 'registru autorizatii'
+        alTime = datetime.datetime.now()
+        alMonth = alTime.strftime('%m')
+
+        self.mnCombo = QComboBox()
+        mnList = [
+            "Ianuarie",
+            "Februarie",
+            "Martie",
+            "Aprilie",
+            "Mai",
+            "Iunie",
+            "Iulie",
+            "August",
+            "Septembrie",
+            "Octombrie",
+            "Noiembrie",
+            "Decembrie"
+        ]
+        self.mnCombo.addItems(mnList)
+        # self.mnCombo.setEditable(True)
+        self.mnCombo.setCurrentText(self.NumbToMonth(alMonth))
+        self.mnCombo.setFixedHeight(25)
+        self.mnCombo.setFixedWidth(100)
+        self.mnCombo.setStyleSheet('padding-left: 10%')
+        self.mnCombo.currentTextChanged.connect(self.chMonth)
+
+
         self.intTrig()
+
+    def MonthToNumb(self, month):
+        if month == "Ianuarie":
+            return "01"
+        if month == "Februarie":
+            return "02"
+        if month == "Martie":
+            return "03"
+        if month == "Aprilie":
+            return "04"
+        if month == "Mai":
+            return "05"
+        if month == "Iunie":
+            return "06"
+        if month == "Iulie":
+            return "07"
+        if month == "August":
+            return "08"
+        if month == "Septembrie":
+            return "09"
+        if month == "Octombrie":
+            return "10"
+        if month == "Noiembrie":
+            return "11"
+        if month == "Decembrie":
+            return "12"
+
+    def NumbToMonth(self, numb):
+        if numb == "01":
+            return "Ianuarie"
+        if numb == "02":
+            return "Februarie"
+        if numb == "03":
+            return "Martie"
+        if numb == "04":
+            return "Aprilie"
+        if numb == "05":
+            return "Mai"
+        if numb == "06":
+            return "Iunie"
+        if numb == "07":
+            return "Iulie"
+        if numb == "08":
+            return "August"
+        if numb == "09":
+            return "Septembrie"
+        if numb == "10":
+            return "Octombrie"
+        if numb == "11":
+            return "Noiembrie"
+        if numb == "12":
+            return "Decembrie"
+
+    def chMonth(self):
+        self.centrAlPop()
 
     #Incarc mongoDB
     def loadMongo(self):
@@ -2249,7 +2319,7 @@ class mainWindow(QMainWindow):
     def dtButtonFunc(self):
         if self.formCheck.isChecked() == True:
             self.dialBoxDt = QDialog()
-            self.dialBoxDt.setWindowFlags(Qt.WindowCloseButtonHint)
+            # self.dialBoxDt.setWindowFlags(Qt.WindowCloseButtonHint)
             self.dialBoxDt.setWindowIcon(QIcon('ataman_logo'))
             self.dialBoxDt.setWindowTitle('Calendar')
             # self.dialBoxDt.setStyleSheet('background-color: #424242;')
@@ -3286,6 +3356,14 @@ class mainWindow(QMainWindow):
         self.secMB.setWindowIcon(QIcon('ataman_logo.ico'))
         self.secMB.exec()
 
+    def msThrdCall(self, myMess):
+        self.myMess = myMess
+        self.secMB = QMessageBox()
+        self.secMB.setIcon(QMessageBox.Information)
+        self.secMB.setWindowTitle('Pentru informare:')
+        self.secMB.setText(self.myMess)
+        self.secMB.setWindowIcon(QIcon('ataman_logo.ico'))
+
     def resetCall(self, myMess):
         self.myMess = myMess
         self.secMB = QMessageBox()
@@ -3342,15 +3420,14 @@ class mainWindow(QMainWindow):
 
         if self.tabWindowControl == True:
             self.tabWindow.close()
-            # self.tabWindowControl = False
-        # self.centralReg = []
-        # for i in range(self.wsRegAl.max_row, 4, -1):
-        #     myColumn = []
-        #     for j in range(1, self.wsRegAl.max_column + 1):
-        #         # data = np.array(centralReg.append(self.wsRegAl.cell(row=i, column=j)))
-        #         myColumn.append(self.wsRegAl.cell(row=i, column=j).value)
-        #     self.centralReg.append(myColumn)
-        # self.data = pd.DataFrame(self.centralReg)
+
+        myTime = datetime.datetime.now()
+        myYear = myTime.strftime('%Y')
+        myMonth = self.MonthToNumb(self.mnCombo.currentText())
+        myVar = "al_" + myYear + "_" + myMonth
+
+        self.reg_al = self.db[myVar]
+
         try:
             self.data = pd.DataFrame(self.reg_al.find())
             myColumn = self.data.pop("_id")
@@ -3395,11 +3472,14 @@ class mainWindow(QMainWindow):
 
             regFrame = QFrame()
             regAlTitle = QLabel()
+            regAlTitle_month = QLabel()
 
             regAlTitle.setText("Registru de autorizatii, oficiul:")
-            regAlTitle.setStyleSheet("padding-left: 50%; font-size:24px; color:rgb(191, 60, 60)")
-            # regAlTitle.move(0, 100)
-            # self.loadOficii()
+            regAlTitle.setStyleSheet('padding-left: 50%; font-size:24px; color:rgb(191, 60, 60)')
+
+            regAlTitle_month.setText("pentru luna:")
+            regAlTitle_month.setStyleSheet('padding-left: 20%; font-size: 24px; color: rgb(191, 60, 60)')
+
             ofList = ['Toate oficiile']
             ofList = ofList + self.ofList
             self.ofCombo = QComboBox()
@@ -3419,13 +3499,16 @@ class mainWindow(QMainWindow):
             hbox = QHBoxLayout()
             hbox.addWidget(regAlTitle)
             hbox.addWidget(self.ofCombo)
-            # hbox.addWidget(refreshBt)
+            hbox.addWidget(regAlTitle_month)
+            hbox.addWidget(self.mnCombo)
             hbox.addWidget(emptyLb)
             hbox.addWidget(emptyLb)
             hbox.addWidget(emptyLb)
             hbox.addWidget(emptyLb)
             hbox.addWidget(emptyLb)
-            hbox.setStretch(1, 1)
+            hbox.addWidget(emptyLb)
+            hbox.addWidget(emptyLb)
+            # hbox.setStretch(1, 1)
 
             vbox = QVBoxLayout()
             vbox.addLayout(hbox)
@@ -3442,8 +3525,12 @@ class mainWindow(QMainWindow):
             self.tabWindow.show()
 
             self.table.doubleClicked.connect(self.showAl)
-        except AttributeError:
-            self.msSecCall("Nu exista date pentru aceasta perioada in registru DS/AL!")
+        # except AttributeError:
+        #     self.msSecCall("Nu exista date pentru aceasta perioada in registru DS/AL!")
+        except KeyError:
+            self.msThrdCall("Nu exista date pentru aceasta perioada in registru DS/AL!")
+            if self.secMB.exec() == QMessageBox.Ok:
+                self.mnCombo.setCurrentText(self.NumbToMonth(myTime.strftime('%m')))
 
 
     def changeForm(self):
@@ -5127,7 +5214,7 @@ class mainWindow(QMainWindow):
 
     def alFunc(self):
         myTime = datetime.datetime.now()
-        myDelta = datetime.timedelta(days=18)
+        myDelta = datetime.timedelta(days=10)
         myMonthMinus = myTime - myDelta
 
         myTime_year = myTime.strftime("%Y")
@@ -5172,7 +5259,6 @@ class mainWindow(QMainWindow):
                     "terminare": "",
                     "link": ""
                 })
-
 
     #  Functie pentru popularea Registrului de autorizatii
     def regPop(self):
