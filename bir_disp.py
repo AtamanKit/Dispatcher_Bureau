@@ -748,11 +748,11 @@ class mainWindow(QMainWindow):
         worker.signal.finished.connect(self.msCerere)
 
         #Working with dates 'registru autorizatii'
-        alTime = datetime.datetime.now()
-        alMonth = alTime.strftime('%m')
+        self.alTime = datetime.datetime.now()
+        self.alMonth = self.alTime.strftime('%m')
 
         self.mnCombo = QComboBox()
-        mnList = [
+        self.mnList = [
             "Ianuarie",
             "Februarie",
             "Martie",
@@ -766,9 +766,9 @@ class mainWindow(QMainWindow):
             "Noiembrie",
             "Decembrie"
         ]
-        self.mnCombo.addItems(mnList)
+        self.mnCombo.addItems(self.mnList)
         # self.mnCombo.setEditable(True)
-        self.mnCombo.setCurrentText(self.NumbToMonth(alMonth))
+        self.mnCombo.setCurrentText(self.NumbToMonth(self.alMonth))
         self.mnCombo.setFixedHeight(25)
         self.mnCombo.setFixedWidth(100)
         self.mnCombo.setStyleSheet('padding-left: 10%')
@@ -6131,8 +6131,15 @@ class mainWindow(QMainWindow):
         self.ofAnNepr.addItems(ofList)
         self.ofAnNepr.setStyleSheet('padding-left:10%; font-size:12px')
         self.ofAnNepr.setFixedHeight(25)
-        self.ofAnNepr.setFixedWidth(100)
+        # self.ofAnNepr.setFixedWidth(100)
         self.ofAnNepr.currentTextChanged.connect(self.AnNeprFunc)
+
+        self.decNeprCombo = QComboBox()
+        self.decNeprCombo.addItems(self.mnList)
+        self.decNeprCombo.setStyleSheet('padding-left: 10%; font-size: 12px')
+        self.decNeprCombo.setFixedHeight(20)
+        self.decNeprCombo.setCurrentText(self.NumbToMonth(self.alMonth))
+        self.decNeprCombo.currentTextChanged.connect(self.AnNeprFunc)
 
         self.AnNeprFunc()
 
@@ -6223,17 +6230,18 @@ class mainWindow(QMainWindow):
             self.tableAnNepr.setSelectionBehavior(QAbstractItemView.SelectRows)
 
             title = QLabel()
-            title.setText("Analiza anuala a deconectarilor neprogramate, oficiul:")
+            title.setText("Analiza deconectarilor neprogramate, oficiul:")
             title.setStyleSheet('padding-left: 50%; font-size:24px; color:rgb(191, 60, 60)')
 
-            emptyLb = QLabel("")
+            # emptyLb = QLabel("")
 
             # titleFrame = QFrame()
             hbox = QHBoxLayout()
             hbox.addWidget(title)
             hbox.addWidget(self.ofAnNepr)
-            hbox.addWidget(emptyLb)
-            hbox.addWidget(emptyLb)
+            hbox.setStretch(1,1)
+            # hbox.addWidget(emptyLb)
+            # hbox.addWidget(emptyLb)
 
             # Calculez datele pentru SAIDI
             cons_dec_tot = data.sum(axis=0)["nr_cons"]
@@ -6331,9 +6339,22 @@ class mainWindow(QMainWindow):
             tableDec.resizeRowsToContents()
             tableDec.verticalHeader().hide()
 
+            yTitle = QLabel("Tabelul anual:")
+            yTitle.setStyleSheet('font-weight: bold; padding-left: 10%')
+
+            mTitle = QLabel("Tabelul lunar:")
+            mTitle.setStyleSheet('font-weight: bold; padding-left: 10px')
+
+            titleCombo_hbox = QHBoxLayout()
+            titleCombo_hbox.addWidget(mTitle)
+            titleCombo_hbox.addWidget(self.decNeprCombo)
+            titleCombo_hbox.setStretch(1, 1)
+
             tablesFrame = QFrame()
             tb_vbox = QVBoxLayout()
+            tb_vbox.addWidget(yTitle)
             tb_vbox.addWidget(self.tableAnNepr)
+            tb_vbox.addLayout(titleCombo_hbox)
             tb_vbox.addWidget(tableDec)
             tablesFrame.setLayout(tb_vbox)
 
@@ -6403,9 +6424,17 @@ class mainWindow(QMainWindow):
             ax.set_xticklabels(of_labels, rotation=25)
             # ax.xticks(rotation='vertical')
 
+            sdTabTitle = QLabel("Tabelul SAIDI (reprezentare grafica):")
+            sdTabTitle.setStyleSheet('padding-left: 10%; font-weight: bold')
+
+            grTitle = QLabel("SAIDI pe oficii:")
+            grTitle.setStyleSheet('padding-left: 10%; font-weight: bold')
+
             ax_Frame = QFrame()
             ax_vbox = QVBoxLayout()
+            ax_vbox.addWidget(sdTabTitle)
             ax_vbox.addWidget(self.tableSaidiN)
+            ax_vbox.addWidget(grTitle)
             ax_vbox.addWidget(canvas)
             ax_Frame.setLayout(ax_vbox)
             ax.bar_label(rects)
