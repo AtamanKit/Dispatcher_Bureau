@@ -5033,27 +5033,28 @@ class mainWindow(QMainWindow):
                                 compens = round(0.01 * 160 * 2.04 * k, 2)
 
 
-                        #Introduc datele in MongoDB analiza lunara
-                        for i in self.db.deconect_app_deconect.find().sort("_id", -1).limit(1):
-                            self.nrDec = int(i["id"]) + 1
-
-                        self.db.deconect_app_deconect.insert_one({
-                            "id": self.nrDec,
-                            "oficiul": self.data.at[self.modRow, 0],
-                            "nr_ordine": self.nrDec,
-                            "pt": self.data.at[self.modRow, 4],
-                            "fid_04kv": self.data.at[self.modRow, 6],
-                            "data_dec": valuePregList[1],
-                            "data_conect": datetime.datetime.now().strftime("%d.%m.%y %H:%M"),
-                            "durata": myDeltaHour,
-                            "cons_cas": self.fidNrCas,
-                            "cons_ec": self.fidNrEc,
-                            "total": self.fidNrCas + self.fidNrEc,
-                            "localitate": self.data.at[self.modRow, 5],
-                            "cauza": self.data.at[self.modRow, 7],
-                            "termen": termText,
-                            "compens": compens
-                        })
+                        #Introduc datele in Postgres
+                        # self.cur.execute(f"""INSERT INTO decnepr_{}""")
+                        # for i in self.db.deconect_app_deconect.find().sort("_id", -1).limit(1):
+                        #     self.nrDec = int(i["id"]) + 1
+                        #
+                        # self.db.deconect_app_deconect.insert_one({
+                        #     "id": self.nrDec,
+                        #     "oficiul": self.data.at[self.modRow, 0],
+                        #     "nr_ordine": self.nrDec,
+                        #     "pt": self.data.at[self.modRow, 4],
+                        #     "fid_04kv": self.data.at[self.modRow, 6],
+                        #     "data_dec": valuePregList[1],
+                        #     "data_conect": datetime.datetime.now().strftime("%d.%m.%y %H:%M"),
+                        #     "durata": myDeltaHour,
+                        #     "cons_cas": self.fidNrCas,
+                        #     "cons_ec": self.fidNrEc,
+                        #     "total": self.fidNrCas + self.fidNrEc,
+                        #     "localitate": self.data.at[self.modRow, 5],
+                        #     "cauza": self.data.at[self.modRow, 7],
+                        #     "termen": termText,
+                        #     "compens": compens
+                        # })
 
                         # anAnualMaxRow = self.wsAnAnualN.max_row + 1
                         # self.wsAnAnualN.cell(row=anAnualMaxRow, column=1).value = \
@@ -5742,25 +5743,6 @@ class mainWindow(QMainWindow):
             self.wsRegAlLink = self.wbRegAl["alLink"]
 
     def postgresLoad(self):
-        # self.destLoad()
-        # if self.wsDest.cell(row=5, column=2).value == None:
-        #     self.msCall("destinatia ANALIZA ANUALA (excel)!")
-        #     self.setTrig()
-        # else:
-        #     destPath = self.wsDest.cell(row=5, column=2).value
-        #     self.myYear = datetime.datetime.now().strftime("%Y")
-        #
-        #     if destPath != "":
-        #         self.fileAnAnual = destPath + "/" + "Analiza_anuala " + str(self.myYear) + ".xlsx"
-        #         fielControl = os.path.isfile(self.fileAnAnual)
-        #         if not fielControl:
-        #             myOriginal = os.path.abspath(".") + "/Bundle/Ungheni/Deconectari/Analiza_anuala.xlsx"
-        #             shutil.copyfile(myOriginal, self.fileAnAnual)
-        #
-        #     self.wbAnAnual = load_workbook(self.fileAnAnual)
-        #     self.wsAnAnualP = self.wbAnAnual["Programat"]
-        #     self.wsAnAnualN = self.wbAnAnual["Neprogramat"]
-
         self.conn = psycopg2.connect(
             host = 'red-nord.cwe4mogj2htg.eu-central-1.rds.amazonaws.com',
             database = 'ungheni',
@@ -5811,6 +5793,9 @@ class mainWindow(QMainWindow):
     #     self.tblAnN = pd.DataFrame(nepl, columns=column_names)
     #     self.tblAnP = pd.DataFrame(plan, columns=column_names)
     #     print(self.tblAnN)
+
+    # def DecNeprContr(self):
+    #     self.cur.execute("""SELCET * FROM pg_tables """)
 
     def AnualProg(self):
         ofList = ["Toate oficiile"]
@@ -6276,208 +6261,205 @@ class mainWindow(QMainWindow):
                                 """)
             self.conn.commit()
 
-            #Incarc tabelul dec nepr, mongo
-#             print(f"""decnepr_{self.alYear}_\
-# {self.MonthToNumb(self.decNeprCombo.currentText())}""")
-            if self.ofAnNepr.currentText() != "Toate oficiile":
-                self.cur.execute(f"""SELECT * FROM decnepr_{self.alYear}_\
-{self.MonthToNumb(self.decNeprCombo.currentText())} WHERE oficiul=\
-'{self.abrOficiiSec(self.ofAnNepr.currentText())}'""")
-            else:
-                self.cur.execute(f"""SELECT * FROM decnepr_{self.alYear}_\
-{self.MonthToNumb(self.decNeprCombo.currentText())}""")
-            tuples = self.cur.fetchall()
-            column_names = [
-                "decnepr_id",
-                "oficiul",
-                "nr_ordine",
-                "pt",
-                "fid_04kv",
-                "data_dec",
-                "data_conect",
-                "durata",
-                "cons_cas",
-                "cons_ec",
-                "total",
-                "localitate",
-                "cauza",
-                "termen",
-                "compens",
-            ]
+            #Incarc tabelul dec nepr, postgres
+            self.cur.execute(f"""SELECT * FROM pg_tables WHERE SCHEMANAME='public'""")
+            for table_tuple in self.cur.fetchall():
+                if table_tuple[1] == f"decnepr_{self.alYear}_{self.MonthToNumb(self.decNeprCombo.currentText())}":
+                    if self.ofAnNepr.currentText() != "Toate oficiile":
+                        self.cur.execute(f"""SELECT * FROM decnepr_{self.alYear}_{self.MonthToNumb(self.decNeprCombo.currentText())} WHERE oficiul='{self.abrOficiiSec(self.ofAnNepr.currentText())}'""")
+                    else:
+                        self.cur.execute(f"""SELECT * FROM decnepr_{self.alYear}_{self.MonthToNumb(self.decNeprCombo.currentText())}""")
+                    tuples = self.cur.fetchall()
+                    column_names = [
+                        "decnepr_id",
+                        "oficiul",
+                        "nr_ordine",
+                        "pt",
+                        "fid_04kv",
+                        "data_dec",
+                        "data_conect",
+                        "durata",
+                        "cons_cas",
+                        "cons_ec",
+                        "total",
+                        "localitate",
+                        "cauza",
+                        "termen",
+                        "compens",
+                    ]
 
-            data = pd.DataFrame(tuples, columns=column_names)
-            header = [
-                "decnepr_id",
-                "Oficiul",
-                "Nr.",
-                "PT",
-                "Fider",
-                "Data si ora\ndeconectarii",
-                "Data si ora\nconectarii",
-                "Durata\nintreruperii",
-                "Cons.\ncas.",
-                "Cons.\nn-cas.",
-                "Total",
-                "Localitate",
-                "Cauza\ndeconectarii",
-                "Termen\nreglementat",
-                "Compensatie\n(lei)",
-            ]
-            data.sort_values(by="decnepr_id", ignore_index=True, ascending=False, inplace=True)
+                    data = pd.DataFrame(tuples, columns=column_names)
+                    header = [
+                        "decnepr_id",
+                        "Oficiul",
+                        "Nr.",
+                        "PT",
+                        "Fider",
+                        "Data si ora\ndeconectarii",
+                        "Data si ora\nconectarii",
+                        "Durata\nintreruperii",
+                        "Cons.\ncas.",
+                        "Cons.\nn-cas.",
+                        "Total",
+                        "Localitate",
+                        "Cauza\ndeconectarii",
+                        "Termen\nreglementat",
+                        "Compensatie\n(lei)",
+                    ]
+                    data.sort_values(by="decnepr_id", ignore_index=True, ascending=False, inplace=True)
 
-            model = TableModel(data, header)
+                    model = TableModel(data, header)
 
-            tableDec = QTableView()
-            tableDec.setModel(model)
-            tableDec.setStyleSheet('background-color: rgb(200, 200, 200)')
-            tableDec.hideColumn(0)
-            # tableDec.setColumnWidth(0, 40)
-            tableDec.setColumnWidth(1, 40)
-            tableDec.setColumnWidth(2, 40)
-            tableDec.setColumnWidth(3, 70)
-            tableDec.setColumnWidth(4, 70)
-            tableDec.setColumnWidth(5, 100)
-            tableDec.setColumnWidth(6, 100)
-            tableDec.setColumnWidth(7, 70)
-            tableDec.setColumnWidth(8, 40)
-            tableDec.setColumnWidth(9, 40)
-            tableDec.setColumnWidth(10, 40)
-            # tableDec.setColumnWidth(14, 70)
-            tableDec.resizeRowsToContents()
-            tableDec.verticalHeader().hide()
-            tableDec.setSelectionBehavior(QAbstractItemView.SelectRows)
+                    tableDec = QTableView()
+                    tableDec.setModel(model)
+                    tableDec.setStyleSheet('background-color: rgb(200, 200, 200)')
+                    tableDec.hideColumn(0)
+                    # tableDec.setColumnWidth(0, 40)
+                    tableDec.setColumnWidth(1, 40)
+                    tableDec.setColumnWidth(2, 40)
+                    tableDec.setColumnWidth(3, 70)
+                    tableDec.setColumnWidth(4, 70)
+                    tableDec.setColumnWidth(5, 100)
+                    tableDec.setColumnWidth(6, 100)
+                    tableDec.setColumnWidth(7, 70)
+                    tableDec.setColumnWidth(8, 40)
+                    tableDec.setColumnWidth(9, 40)
+                    tableDec.setColumnWidth(10, 40)
+                    # tableDec.setColumnWidth(14, 70)
+                    tableDec.resizeRowsToContents()
+                    tableDec.verticalHeader().hide()
+                    tableDec.setSelectionBehavior(QAbstractItemView.SelectRows)
 
-            yTitle = QLabel("Tabelul anual:")
-            yTitle.setStyleSheet('font-weight: bold; padding-left: 10%')
+                    yTitle = QLabel("Tabelul anual:")
+                    yTitle.setStyleSheet('font-weight: bold; padding-left: 10%')
 
-            mTitle = QLabel("Tabelul lunar:")
-            mTitle.setStyleSheet('font-weight: bold; padding-left: 10px')
+                    mTitle = QLabel("Tabelul lunar:")
+                    mTitle.setStyleSheet('font-weight: bold; padding-left: 10px')
 
-            titleCombo_hbox = QHBoxLayout()
-            titleCombo_hbox.addWidget(mTitle)
-            titleCombo_hbox.addWidget(self.decNeprCombo)
-            titleCombo_hbox.setStretch(1, 1)
+                    titleCombo_hbox = QHBoxLayout()
+                    titleCombo_hbox.addWidget(mTitle)
+                    titleCombo_hbox.addWidget(self.decNeprCombo)
+                    titleCombo_hbox.setStretch(1, 1)
 
-            tablesFrame = QFrame()
-            tb_vbox = QVBoxLayout()
-            tb_vbox.addWidget(yTitle)
-            tb_vbox.addWidget(self.tableAnNepr)
-            tb_vbox.addLayout(titleCombo_hbox)
-            tb_vbox.addWidget(tableDec)
-            tablesFrame.setLayout(tb_vbox)
+                    tablesFrame = QFrame()
+                    tb_vbox = QVBoxLayout()
+                    tb_vbox.addWidget(yTitle)
+                    tb_vbox.addWidget(self.tableAnNepr)
+                    tb_vbox.addLayout(titleCombo_hbox)
+                    tb_vbox.addWidget(tableDec)
+                    tablesFrame.setLayout(tb_vbox)
 
-            #Incarc tabelul saidi
-            self.cur.execute('SELECT * FROM saidin ORDER BY saidin_id')
-            tuples = self.cur.fetchall()
-            column_names = [
-                "saidi_id",
-                "oficiul",
-                "cons_cas",
-                "cons_ec",
-                "cons_tot",
-                "cons_dec",
-                "t_dec",
-                "nr_dec_tot",
-                "saidi",
-                "saifi",
-                "caidi"
-            ]
+                    #Incarc tabelul saidi
+                    self.cur.execute('SELECT * FROM saidin ORDER BY saidin_id')
+                    tuples = self.cur.fetchall()
+                    column_names = [
+                        "saidi_id",
+                        "oficiul",
+                        "cons_cas",
+                        "cons_ec",
+                        "cons_tot",
+                        "cons_dec",
+                        "t_dec",
+                        "nr_dec_tot",
+                        "saidi",
+                        "saifi",
+                        "caidi"
+                    ]
 
-            data = pd.DataFrame(tuples, columns=column_names)
-            header = [
-                "saidin_id",
-                "Oficiul",
-                "Cons.casn.",
-                "Cons.non-casn.",
-                "Cons.total",
-                "Cons.total deconect",
-                "Timpul total de deconect",
-                "Nr.total de deconect.",
-                "SAIDI",
-                "SAIFI",
-                "CAIDI"
-            ]
+                    data = pd.DataFrame(tuples, columns=column_names)
+                    header = [
+                        "saidin_id",
+                        "Oficiul",
+                        "Cons.casn.",
+                        "Cons.non-casn.",
+                        "Cons.total",
+                        "Cons.total deconect",
+                        "Timpul total de deconect",
+                        "Nr.total de deconect.",
+                        "SAIDI",
+                        "SAIFI",
+                        "CAIDI"
+                    ]
 
-            #Creez tabelul saidin
-            self.tableSaidiN = QTableView()
-            model = TableModel(data, header)
-            self.tableSaidiN.setModel(model)
-            self.tableSaidiN.setStyleSheet('Background-color: rgb(200, 200, 200)')
-            self.tableSaidiN.resizeColumnsToContents()
-            self.tableSaidiN.verticalHeader().hide()
-            self.tableSaidiN.hideColumn(0)
-            self.tableSaidiN.setSelectionBehavior(QAbstractItemView.SelectRows)
+                    #Creez tabelul saidin
+                    self.tableSaidiN = QTableView()
+                    model = TableModel(data, header)
+                    self.tableSaidiN.setModel(model)
+                    self.tableSaidiN.setStyleSheet('Background-color: rgb(200, 200, 200)')
+                    self.tableSaidiN.resizeColumnsToContents()
+                    self.tableSaidiN.verticalHeader().hide()
+                    self.tableSaidiN.hideColumn(0)
+                    self.tableSaidiN.setSelectionBehavior(QAbstractItemView.SelectRows)
 
-            #Creez graficul saidin
-            canvas = FigureCanvas(Figure(figsize=(1, 5), facecolor=(.78, .78, .78)))
+                    #Creez graficul saidin
+                    canvas = FigureCanvas(Figure(figsize=(1, 5), facecolor=(.78, .78, .78)))
 
-            of_labels = []
-            for i in self.ofList:
-                of_labels.append(i)
+                    of_labels = []
+                    for i in self.ofList:
+                        of_labels.append(i)
 
-            of_saidi = []
-            for i in range(len(data)-1):
-                of_saidi.append(int(round(data.at[i, "saidi"])))
+                    of_saidi = []
+                    for i in range(len(data)-1):
+                        of_saidi.append(int(round(data.at[i, "saidi"])))
 
-            x = np.arange(len(of_labels))
+                    x = np.arange(len(of_labels))
 
-            ax = canvas.figure.subplots()
-            rects = ax.bar(x, of_saidi)
+                    ax = canvas.figure.subplots()
+                    rects = ax.bar(x, of_saidi)
 
-            ax.set_facecolor('#999')
-            ax.set_ylabel("SAIDI")
-            # ax.set_xlabel("Denumire Oficii")
-            ax.set_title("SAIDI pe oficii")
-            ax.set_xticks(x)
-            ax.set_xticklabels(of_labels, rotation=25)
-            # ax.xticks(rotation='vertical')
+                    ax.set_facecolor('#999')
+                    ax.set_ylabel("SAIDI")
+                    # ax.set_xlabel("Denumire Oficii")
+                    ax.set_title("SAIDI pe oficii")
+                    ax.set_xticks(x)
+                    ax.set_xticklabels(of_labels, rotation=25)
+                    # ax.xticks(rotation='vertical')
 
-            sdTabTitle = QLabel("Tabelul SAIDI (reprezentare grafica):")
-            sdTabTitle.setStyleSheet('padding-left: 10%; font-weight: bold')
+                    sdTabTitle = QLabel("Tabelul SAIDI (reprezentare grafica):")
+                    sdTabTitle.setStyleSheet('padding-left: 10%; font-weight: bold')
 
-            grTitle = QLabel("SAIDI pe oficii:")
-            grTitle.setStyleSheet('padding-left: 10%; font-weight: bold')
+                    grTitle = QLabel("SAIDI pe oficii:")
+                    grTitle.setStyleSheet('padding-left: 10%; font-weight: bold')
 
-            ax_Frame = QFrame()
-            ax_vbox = QVBoxLayout()
-            ax_vbox.addWidget(sdTabTitle)
-            ax_vbox.addWidget(self.tableSaidiN)
-            ax_vbox.addWidget(grTitle)
-            ax_vbox.addWidget(canvas)
-            ax_Frame.setLayout(ax_vbox)
-            ax.bar_label(rects)
+                    ax_Frame = QFrame()
+                    ax_vbox = QVBoxLayout()
+                    ax_vbox.addWidget(sdTabTitle)
+                    ax_vbox.addWidget(self.tableSaidiN)
+                    ax_vbox.addWidget(grTitle)
+                    ax_vbox.addWidget(canvas)
+                    ax_Frame.setLayout(ax_vbox)
+                    ax.bar_label(rects)
 
-            myScr = app.primaryScreen()
-            myScrAv = myScr.availableGeometry()
-            myWith = myScrAv.width()
-            print(myWith)
+                    myScr = app.primaryScreen()
+                    myScrAv = myScr.availableGeometry()
+                    myWith = myScrAv.width()
 
-            splitter = QSplitter(Qt.Horizontal)
-            splitter.addWidget(tablesFrame)
-            splitter.addWidget(ax_Frame)
-            splitter.handle(1).setStyleSheet('Background-color: rgb(191, 60, 60)')
-            splitter.setSizes([myWith - myWith/2.2, myWith/2.2])
+                    splitter = QSplitter(Qt.Horizontal)
+                    splitter.addWidget(tablesFrame)
+                    splitter.addWidget(ax_Frame)
+                    splitter.handle(1).setStyleSheet('Background-color: rgb(191, 60, 60)')
+                    splitter.setSizes([myWith - myWith/2.2, myWith/2.2])
 
-            totalFrame = QFrame()
-            vbox = QVBoxLayout()
-            vbox.addLayout(hbox)
-            vbox.addWidget(splitter)
-            vbox.setStretch(1, 1)
-            totalFrame.setLayout(vbox)
+                    totalFrame = QFrame()
+                    vbox = QVBoxLayout()
+                    vbox.addLayout(hbox)
+                    vbox.addWidget(splitter)
+                    vbox.setStretch(1, 1)
+                    totalFrame.setLayout(vbox)
 
 
-            self.anNeprMdi = QMdiSubWindow()
-            self.myMidi.addSubWindow(self.anNeprMdi)
-            self.anNeprMdi.setWidget(totalFrame)
-            self.anNeprMdi.setWindowIcon(QIcon(QPixmap(1, 1)))
-            self.anNeprMdi.setGeometry(100, 100, 1000, 600)
-            self.anNeprMdi.showMaximized()
-            self.anNeprMdi.show()
-
+                    self.anNeprMdi = QMdiSubWindow()
+                    self.myMidi.addSubWindow(self.anNeprMdi)
+                    self.anNeprMdi.setWidget(totalFrame)
+                    self.anNeprMdi.setWindowIcon(QIcon(QPixmap(1, 1)))
+                    self.anNeprMdi.setGeometry(100, 100, 1000, 600)
+                    self.anNeprMdi.showMaximized()
+                    self.anNeprMdi.show()
+                else:
+                    self.msThrdCall(f"""Nu exista date pentru luna {self.decNeprCombo.currentText()}""")
             self.cur.close()
         else:
-            self.msSecCall(f"Pentru oficiul {self.ofAnProg.currentText()} "
-                           f"nu exista date!")
+            self.msSecCall(f"Pentru oficiul {self.ofAnProg.currentText()} nu exista date!")
 
     def decAnaliza(self):
         # self.abrOficii()
