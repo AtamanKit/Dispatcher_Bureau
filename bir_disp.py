@@ -4593,9 +4593,6 @@ class mainWindow(QMainWindow):
             self.msSecCall("Nu aveti suficiente drepturi\n"
                             "pentru a efectua aceasta operatiune!")
 
-
-
-
     #Functie terminarea lucrarilor
     def termLucr(self):
         if self.namePosition == "Dispecer":
@@ -5038,47 +5035,114 @@ class mainWindow(QMainWindow):
                         #Introduc datele in Postgres
                         self.cur.execute("SELECT * FROM pg_tables "
                                          "WHERE SCHEMANAME='public'")
+                        isTable = False
                         for table_tuple in self.cur.fetchall():
                             if table_tuple[1] == f"decnepr_" \
                                                  f"{self.alYear}_" \
                                                  f"{self.alMonth}":
+                                isTable = True
                                 self.cur.execute(f"SELECT decnepr_id FROM decnepr_"
                                                  f"{self.alYear}_{self.alMonth} "
                                                  f"ORDER BY decnepr_id DESC LIMIT 1")
-                                nrDec = self.cur.fetchall()[0][0] + 1
+                                if self.cur.fetchall() == []:
+                                    nrDec = 0
+                                else:
+                                    nrDec = self.cur.fetchall()[0][0] + 1
                                 timeNow = self.alTime.strftime("%d.%m.%y %H:%M")
-                                self.cur.execute(f"""INSERT INTO decnepr_{self.alYear}_{self.alMonth} (
-                                                 oficiul,
-                                                 nr_ordine,
-                                                 pt,
-                                                 fid_04kv,
-                                                 data_dec,
-                                                 data_conect,
-                                                 durata,
-                                                 cons_cas,
-                                                 cons_ec,
-                                                 total,
-                                                 localitate,
-                                                 cauza,
-                                                 termen,
-                                                 compens
-                                                )
-                                                 VALUES (
-                                                 '{self.data.at[self.modRow, 0]}',
-                                                 '{nrDec}',
-                                                 '{self.data.at[self.modRow, 4]}',
-                                                 '{self.data.at[self.modRow, 6]}',
-                                                 '{valuePregList[1]}',
-                                                 '{timeNow}',
-                                                 '{myDeltaHour}',
-                                                 '{self.fidNrCas}',
-                                                 '{self.fidNrEc}',
-                                                 '{self.fidNrCas + self.fidNrEc}',
-                                                 '{self.data.at[self.modRow, 5]}',
-                                                 '{self.data.at[self.modRow, 7]}',
-                                                 '{termText}',
-                                                 '{compens}')""")
+                                self.cur.execute(f"""INSERT INTO decnepr_2021_04 (
+                                                    oficiul, 
+                                                    nr_ordine, 
+                                                    pt, 
+                                                    fid_04kv, 
+                                                    data_dec, 
+                                                    data_conect, 
+                                                    durata, 
+                                                    cons_cas, 
+                                                    cons_ec, 
+                                                    total, 
+                                                    localitate, 
+                                                    cauza, 
+                                                    termen, 
+                                                    compens
+                                            ) 
+                                            VALUES (
+                                                    '{self.data.at[self.modRow, 0]}', 
+                                                    '{nrDec}', 
+                                                    '{self.data.at[self.modRow, 4]}', 
+                                                    '{self.data.at[self.modRow, 6]}', 
+                                                    '{valuePregList[1]}', 
+                                                    '{timeNow}', 
+                                                    '{myDeltaHour}', 
+                                                    '{self.fidNrCas}', 
+                                                    '{self.fidNrEc}', 
+                                                    '{self.fidNrCas + self.fidNrEc}', 
+                                                    '{self.data.at[self.modRow, 5]}', 
+                                                    '{self.data.at[self.modRow, 7]}', 
+                                                    '{termText}', 
+                                                    '{compens}')"""
+                                                 )
                                 self.conn.commit()
+                        if isTable == False:
+                            self.cur.execute(f"""CREATE TABLE
+                            decnepr_{self.alYear}_{self.alMonth}(
+                            decnepr_id serial PRIMARY KEY,
+                            oficiul VARCHAR(32),
+                            nr_ordine INT4,
+                            pt VARCHAR(32),
+                            fid_04kv VARCHAR(32),
+                            data_dec VARCHAR(32),
+                            data_conect VARCHAR(32),
+                            durata VARCHAR(32),
+                            cons_cas INT4,
+                            cons_ec INT4,
+                            total INT4,
+                            localitate VARCHAR(32),
+                            cauza VARCHAR(256),
+                            termen VARCHAR(256),
+                            compens NUMERIC
+                            )""")
+                            self.conn.commit()
+                            self.cur.execute(f"SELECT decnepr_id FROM decnepr_"
+                                             f"{self.alYear}_{self.alMonth} "
+                                             f"ORDER BY decnepr_id DESC LIMIT 1")
+                            if self.cur.fetchall() == []:
+                                nrDec = 0
+                            else:
+                                nrDec = self.cur.fetchall()[0][0] + 1
+                            timeNow = self.alTime.strftime("%d.%m.%y %H:%M")
+                            self.cur.execute(f"""INSERT INTO decnepr_2021_04 (
+                                                oficiul, 
+                                                nr_ordine, 
+                                                pt, 
+                                                fid_04kv, 
+                                                data_dec, 
+                                                data_conect, 
+                                                durata, 
+                                                cons_cas, 
+                                                cons_ec, 
+                                                total, 
+                                                localitate, 
+                                                cauza, 
+                                                termen, 
+                                                compens
+                                        ) 
+                                        VALUES (
+                                                '{self.data.at[self.modRow, 0]}', 
+                                                '{nrDec}', 
+                                                '{self.data.at[self.modRow, 4]}', 
+                                                '{self.data.at[self.modRow, 6]}', 
+                                                '{valuePregList[1]}', 
+                                                '{timeNow}', 
+                                                '{myDeltaHour}', 
+                                                '{self.fidNrCas}', 
+                                                '{self.fidNrEc}', 
+                                                '{self.fidNrCas + self.fidNrEc}', 
+                                                '{self.data.at[self.modRow, 5]}', 
+                                                '{self.data.at[self.modRow, 7]}', 
+                                                '{termText}', 
+                                                '{compens}')"""
+                                             )
+                            self.conn.commit()
                         self.cur.close()
                         # for i in self.db.deconect_app_deconect.find().sort("_id", -1).limit(1):
                         #     self.nrDec = int(i["id"]) + 1
