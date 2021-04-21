@@ -4335,170 +4335,174 @@ class mainWindow(QMainWindow):
         self.table.hideRow(self.modRow)
 
     def pregFunc(self):
-        if self.namePosition == "Dispecer":
-            searchAcc = re.search("Acceptat:", self.data.at[self.modRow, 14])
-            if searchAcc:
-                if self.data.at[self.modRow, 15] == "Pregatire" \
-                    or self.data.at[self.modRow, 15] == "Cerere la pregatire":
-                    self.dtRegAl()
-                    myMaxRow = self.wsRegAl.max_row + 1
-                    myDateTime = datetime.datetime.now()
-                    self.data.at[self.modRow, 15] = "Pregatire:\n" + \
-                        myDateTime.strftime("%d.%m.%y %H:%M")+ "\n" + self.uCombo.currentText()
+        try:
+            if self.namePosition == "Dispecer":
+                searchAcc = re.search("Acceptat:", self.data.at[self.modRow, 14])
+                if searchAcc:
+                    if self.data.at[self.modRow, 15] == "Pregatire" \
+                        or self.data.at[self.modRow, 15] == "Cerere la pregatire":
+                        self.dtRegAl()
+                        myMaxRow = self.wsRegAl.max_row + 1
+                        myDateTime = datetime.datetime.now()
+                        self.data.at[self.modRow, 15] = "Pregatire:\n" + \
+                            myDateTime.strftime("%d.%m.%y %H:%M")+ "\n" + self.uCombo.currentText()
 
-                    if self.data.at[self.modRow, 11] == "" or self.data.at[self.modRow, 11] == "Fara deconectari":
-                    # if self.data.at[self.modRow, 1] != "":
-                        self.data.at[self.modRow, 16] = "Admitere:\n" + \
-                        myDateTime.strftime("%d.%m.%y %H:%M")+ "\n" + self.uCombo.currentText()
+                        if self.data.at[self.modRow, 11] == "" or self.data.at[self.modRow, 11] == "Fara deconectari":
+                        # if self.data.at[self.modRow, 1] != "":
+                            self.data.at[self.modRow, 16] = "Admitere:\n" + \
+                            myDateTime.strftime("%d.%m.%y %H:%M")+ "\n" + self.uCombo.currentText()
 
-                    #Fac update la MongoDB, ulterior excel
-                    if self.data.at[self.modRow, 1] != "":
-                        self.reg_al.update_one({
-                            "nr_ds": self.data.at[self.modRow, 1]
-                        }, {
-                            "$set": {
-                                "pregatire": self.data.at[self.modRow, 15],
-                                "admitere": self.data.at[self.modRow, 16]
-                            }
-                        })
-                        # Fac update la excel registru
-                        for i in self.reg_al.find({"nr_ds": self.data.at[self.modRow, 1]}):
-                            self.wsRegAl.cell(row=myMaxRow, column=1).value = i["oficiul"]
-                            self.wsRegAl.cell(row=myMaxRow, column=1).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=2).value = i["nr_ds"]
-                            self.wsRegAl.cell(row=myMaxRow, column=2).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=3).value = i["nr_al"]
-                            self.wsRegAl.cell(row=myMaxRow, column=3).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=4).value = i["instalatia"]
-                            self.wsRegAl.cell(row=myMaxRow, column=4).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=5).value = i["pt"]
-                            self.wsRegAl.cell(row=myMaxRow, column=5).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=6).value = i["localitatea"]
-                            self.wsRegAl.cell(row=myMaxRow, column=6).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=7).value = i["fid_nr"]
-                            self.wsRegAl.cell(row=myMaxRow, column=7).alignment = \
-                                 Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=8).value = i["lucrarile"]
-                            self.wsRegAl.cell(row=myMaxRow, column=8).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=9).value = i["sef"]
-                            self.wsRegAl.cell(row=myMaxRow, column=9).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=10).value = i["mem_ech"]
-                            self.wsRegAl.cell(row=myMaxRow, column=10).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=11).value = i["emitent"]
-                            self.wsRegAl.cell(row=myMaxRow, column=11).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=12).value = i["cu_dec"]
-                            self.wsRegAl.cell(row=myMaxRow, column=12).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=13).value = i["mas_teh"]
-                            self.wsRegAl.cell(row=myMaxRow, column=13).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=14).value = i["semnatura"]
-                            self.wsRegAl.cell(row=myMaxRow, column=14).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=15).value = i["starea"]
-                            self.wsRegAl.cell(row=myMaxRow, column=15).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=16).value = i["pregatire"]
-                            self.wsRegAl.cell(row=myMaxRow, column=16).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=17).value = i["admitere"]
-                            self.wsRegAl.cell(row=myMaxRow, column=17).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=18).value = i["terminare"]
-                            self.wsRegAl.cell(row=myMaxRow, column=18).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
+                        #Fac update la MongoDB, ulterior excel
+                        if self.data.at[self.modRow, 1] != "":
+                            self.reg_al.update_one({
+                                "nr_ds": self.data.at[self.modRow, 1]
+                            }, {
+                                "$set": {
+                                    "pregatire": self.data.at[self.modRow, 15],
+                                    "admitere": self.data.at[self.modRow, 16]
+                                }
+                            })
+                            # Fac update la excel registru
+                            for i in self.reg_al.find({"nr_ds": self.data.at[self.modRow, 1]}):
+                                self.wsRegAl.cell(row=myMaxRow, column=1).value = i["oficiul"]
+                                self.wsRegAl.cell(row=myMaxRow, column=1).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=2).value = i["nr_ds"]
+                                self.wsRegAl.cell(row=myMaxRow, column=2).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=3).value = i["nr_al"]
+                                self.wsRegAl.cell(row=myMaxRow, column=3).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=4).value = i["instalatia"]
+                                self.wsRegAl.cell(row=myMaxRow, column=4).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=5).value = i["pt"]
+                                self.wsRegAl.cell(row=myMaxRow, column=5).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=6).value = i["localitatea"]
+                                self.wsRegAl.cell(row=myMaxRow, column=6).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=7).value = i["fid_nr"]
+                                self.wsRegAl.cell(row=myMaxRow, column=7).alignment = \
+                                     Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=8).value = i["lucrarile"]
+                                self.wsRegAl.cell(row=myMaxRow, column=8).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=9).value = i["sef"]
+                                self.wsRegAl.cell(row=myMaxRow, column=9).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=10).value = i["mem_ech"]
+                                self.wsRegAl.cell(row=myMaxRow, column=10).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=11).value = i["emitent"]
+                                self.wsRegAl.cell(row=myMaxRow, column=11).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=12).value = i["cu_dec"]
+                                self.wsRegAl.cell(row=myMaxRow, column=12).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=13).value = i["mas_teh"]
+                                self.wsRegAl.cell(row=myMaxRow, column=13).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=14).value = i["semnatura"]
+                                self.wsRegAl.cell(row=myMaxRow, column=14).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=15).value = i["starea"]
+                                self.wsRegAl.cell(row=myMaxRow, column=15).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=16).value = i["pregatire"]
+                                self.wsRegAl.cell(row=myMaxRow, column=16).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=17).value = i["admitere"]
+                                self.wsRegAl.cell(row=myMaxRow, column=17).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=18).value = i["terminare"]
+                                self.wsRegAl.cell(row=myMaxRow, column=18).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
 
-                    elif self.data.at[self.modRow, 2] != "":
-                        self.reg_al.update_one({
-                            "nr_al": self.data.at[self.modRow, 2]
-                        }, {
-                            "$set": {
-                                "pregatire": self.data.at[self.modRow, 15],
-                                "admitere": self.data.at[self.modRow, 16]
-                            }
-                        })
-                        # Fac update la excel registru
-                        for i in self.reg_al.find({"nr_al": self.data.at[self.modRow, 2]}):
-                            self.wsRegAl.cell(row=myMaxRow, column=1).value = i["oficiul"]
-                            self.wsRegAl.cell(row=myMaxRow, column=1).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=2).value = i["nr_ds"]
-                            self.wsRegAl.cell(row=myMaxRow, column=2).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=3).value = i["nr_al"]
-                            self.wsRegAl.cell(row=myMaxRow, column=3).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=4).value = i["instalatia"]
-                            self.wsRegAl.cell(row=myMaxRow, column=4).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=5).value = i["pt"]
-                            self.wsRegAl.cell(row=myMaxRow, column=5).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=6).value = i["localitatea"]
-                            self.wsRegAl.cell(row=myMaxRow, column=6).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=7).value = i["fid_nr"]
-                            self.wsRegAl.cell(row=myMaxRow, column=7).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=8).value = i["lucrarile"]
-                            self.wsRegAl.cell(row=myMaxRow, column=8).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=9).value = i["sef"]
-                            self.wsRegAl.cell(row=myMaxRow, column=9).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=10).value = i["mem_ech"]
-                            self.wsRegAl.cell(row=myMaxRow, column=10).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=11).value = i["emitent"]
-                            self.wsRegAl.cell(row=myMaxRow, column=11).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=12).value = i["cu_dec"]
-                            self.wsRegAl.cell(row=myMaxRow, column=12).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=13).value = i["mas_teh"]
-                            self.wsRegAl.cell(row=myMaxRow, column=13).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=14).value = i["semnatura"]
-                            self.wsRegAl.cell(row=myMaxRow, column=14).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=15).value = i["starea"]
-                            self.wsRegAl.cell(row=myMaxRow, column=15).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=16).value = i["pregatire"]
-                            self.wsRegAl.cell(row=myMaxRow, column=16).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=17).value = i["admitere"]
-                            self.wsRegAl.cell(row=myMaxRow, column=17).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
-                            self.wsRegAl.cell(row=myMaxRow, column=18).value = i["terminare"]
-                            self.wsRegAl.cell(row=myMaxRow, column=18).alignment = \
-                                Alignment(horizontal="center", vertical="center", wrap_text=True)
+                        elif self.data.at[self.modRow, 2] != "":
+                            self.reg_al.update_one({
+                                "nr_al": self.data.at[self.modRow, 2]
+                            }, {
+                                "$set": {
+                                    "pregatire": self.data.at[self.modRow, 15],
+                                    "admitere": self.data.at[self.modRow, 16]
+                                }
+                            })
+                            # Fac update la excel registru
+                            for i in self.reg_al.find({"nr_al": self.data.at[self.modRow, 2]}):
+                                self.wsRegAl.cell(row=myMaxRow, column=1).value = i["oficiul"]
+                                self.wsRegAl.cell(row=myMaxRow, column=1).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=2).value = i["nr_ds"]
+                                self.wsRegAl.cell(row=myMaxRow, column=2).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=3).value = i["nr_al"]
+                                self.wsRegAl.cell(row=myMaxRow, column=3).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=4).value = i["instalatia"]
+                                self.wsRegAl.cell(row=myMaxRow, column=4).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=5).value = i["pt"]
+                                self.wsRegAl.cell(row=myMaxRow, column=5).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=6).value = i["localitatea"]
+                                self.wsRegAl.cell(row=myMaxRow, column=6).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=7).value = i["fid_nr"]
+                                self.wsRegAl.cell(row=myMaxRow, column=7).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=8).value = i["lucrarile"]
+                                self.wsRegAl.cell(row=myMaxRow, column=8).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=9).value = i["sef"]
+                                self.wsRegAl.cell(row=myMaxRow, column=9).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=10).value = i["mem_ech"]
+                                self.wsRegAl.cell(row=myMaxRow, column=10).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=11).value = i["emitent"]
+                                self.wsRegAl.cell(row=myMaxRow, column=11).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=12).value = i["cu_dec"]
+                                self.wsRegAl.cell(row=myMaxRow, column=12).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=13).value = i["mas_teh"]
+                                self.wsRegAl.cell(row=myMaxRow, column=13).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=14).value = i["semnatura"]
+                                self.wsRegAl.cell(row=myMaxRow, column=14).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=15).value = i["starea"]
+                                self.wsRegAl.cell(row=myMaxRow, column=15).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=16).value = i["pregatire"]
+                                self.wsRegAl.cell(row=myMaxRow, column=16).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=17).value = i["admitere"]
+                                self.wsRegAl.cell(row=myMaxRow, column=17).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
+                                self.wsRegAl.cell(row=myMaxRow, column=18).value = i["terminare"]
+                                self.wsRegAl.cell(row=myMaxRow, column=18).alignment = \
+                                    Alignment(horizontal="center", vertical="center", wrap_text=True)
 
-                    try:
-                        self.wbRegAl.save(self.regFile)
-                    except PermissionError:
-                        self.msSecCall("Registru AUTORIZATIILOR excel este deschis undeva,\n"
-                                        "(nu este permisa introducerea datelor). Incercati mai tirziu!")
-                        self.centrAlPop()
+                        try:
+                            self.wbRegAl.save(self.regFile)
+                        except PermissionError:
+                            self.msSecCall("Registru AUTORIZATIILOR excel este deschis undeva,\n"
+                                            "(nu este permisa introducerea datelor). Incercati mai tirziu!")
+                            self.centrAlPop()
+                    else:
+                        self.msSecCall("Permiterea la pregatirea locului de munca\n"
+                                       "a fost efectuata sau nu s-a lucrat!")
                 else:
                     self.msSecCall("Permiterea la pregatirea locului de munca\n"
-                                   "a fost efectuata sau nu s-a lucrat!")
+                                   "nu poate fi efectuata fara a accepta inregistrarea!")
             else:
-                self.msSecCall("Permiterea la pregatirea locului de munca\n"
-                               "nu poate fi efectuata fara a accepta inregistrarea!")
-        else:
-            self.msSecCall("Nu aveti suficiente drepturi\n"
-                       "pentru a permite pregatirea locului de munca!")
+                self.msSecCall("Nu aveti suficiente drepturi\n"
+                           "pentru a permite pregatirea locului de munca!")
+        except FileNotFoundError:
+            self.msSecCall("Nu exista destinatie corecta pentru registru DS/AL excel!")
+            self.setTrig()
 
     def admFunc(self):
         if self.namePosition == "Dispecer":
@@ -4977,7 +4981,7 @@ class mainWindow(QMainWindow):
                             self.msSecCall("Datele din autorizatie, sectiunea NEPROGRAMAT \n"
                                            "nu s-au introdus in fisierul RAPORT PDJT excel (cineva foloseste aplicatia)!")
 
-                        # Introduc datele in Excel analiza anuala
+                        # Introduc datele in postgres analiza anuala
                         self.postgresLoad()
                         self.cur.execute(f"""INSERT INTO anlzan21n (
                                                 oficiul,
@@ -4997,7 +5001,6 @@ class mainWindow(QMainWindow):
                                             )"""
                         )
                         self.conn.commit()
-                        self.cur.close()
 
                         # Determin incadrarea termenului urban, rural
                         myList = myDeltaHour.split(":")
@@ -5034,7 +5037,18 @@ class mainWindow(QMainWindow):
 
 
                         #Introduc datele in Postgres
-                        # self.cur.execute(f"""INSERT INTO decnepr_{}""")
+                        self.cur.execute("SELECT * FROM pg_tables "
+                                         "WHERE SCHEMANAME='public'")
+                        for table_tuple in self.cur.fetchall():
+                            if table_tuple[1] == f"decnepr_" \
+                                                 f"{self.alYear}_" \
+                                                 f"{self.alMonth}":
+                                self.cur.execute(f"SELECT decnepr_id FROM decnepr_"
+                                                 f"{self.alYear}_{self.alMonth} "
+                                                 f"ORDER BY decnepr_id DESC LIMIT 1")
+                                nrDec = self.cur.fetchall()[0][0] + 1
+
+                        self.cur.close()
                         # for i in self.db.deconect_app_deconect.find().sort("_id", -1).limit(1):
                         #     self.nrDec = int(i["id"]) + 1
                         #
@@ -5640,86 +5654,93 @@ class mainWindow(QMainWindow):
                 os.mkdir(self.dsPath)
 
     def dtContrDecZl(self):
-        self.destLoad()
-        if self.wsDest.cell(row=3, column=2).value == None:
-            self.msCall("destinatia RAPORT PDJT (excel)!")
-            self.setTrig()
-        else:
-            destPath = self.wsDest.cell(row=3, column=2).value
-            # Controlez daca exista mapa cu anul, luna, daca nu exista o creez
-            self.myYear = datetime.datetime.now().strftime("%Y")
-            self.myMonth = datetime.datetime.now().strftime("%m")
-            self.myDay = datetime.datetime.now().strftime("%d")
-            self.myHour = datetime.datetime.now().strftime("%H")
-
-            myDate = datetime.datetime.now()
-            myDelta = datetime.timedelta(days=1)
-            myDateNext = myDate + myDelta
-            myDeltaMinus = datetime.timedelta(days=-1)
-            myDateMinus = myDate + myDeltaMinus
-            myDayMinus = myDateMinus.strftime("%d")
-
-            myPath = destPath + "/" + str(self.myYear)
-            dirControl = os.path.isdir(myPath)
-            if not dirControl:
-                os.mkdir(myPath)
-
-            myMonthPath = myPath + "/" + str(self.myMonth)
-            dirControl = os.path.isdir(myMonthPath)
-            if not dirControl:
-                os.mkdir(myMonthPath)
-
-            if int(self.myHour) >= 8:
-                self.rapFile = myMonthPath + "/" + str(self.myDay) + " Raport.xlsx"
+        try:
+            self.destLoad()
+            if self.wsDest.cell(row=3, column=2).value == None:
+                self.msCall("destinatia RAPORT PDJT (excel)!")
+                self.setTrig()
             else:
-                self.rapFile = myMonthPath + "/" + str(myDayMinus) + " Raport.xlsx"
-            fileControl = os.path.isfile(self.rapFile)
+                destPath = self.wsDest.cell(row=3, column=2).value
+                # Controlez daca exista mapa cu anul, luna, daca nu exista o creez
+                self.myYear = datetime.datetime.now().strftime("%Y")
+                self.myMonth = datetime.datetime.now().strftime("%m")
+                self.myDay = datetime.datetime.now().strftime("%d")
+                self.myHour = datetime.datetime.now().strftime("%H")
 
-            if not fileControl:
-                myOriginal = os.path.abspath(".") + "/Bundle/Ungheni/Raport/Raport.xlsx"
-                shutil.copyfile(myOriginal, self.rapFile)
+                myDate = datetime.datetime.now()
+                myDelta = datetime.timedelta(days=1)
+                myDateNext = myDate + myDelta
+                myDeltaMinus = datetime.timedelta(days=-1)
+                myDateMinus = myDate + myDeltaMinus
+                myDayMinus = myDateMinus.strftime("%d")
 
-            self.wbDecZil = load_workbook(self.rapFile)
-            self.wsDecPT = self.wbDecZil["Deconectari PT"]
-            self.wsNrSol = self.wbDecZil["Numar solicitari"]
+                myPath = destPath + "/" + str(self.myYear)
+                dirControl = os.path.isdir(myPath)
+                if not dirControl:
+                    os.mkdir(myPath)
 
-            if int(self.myHour) >= 8:
-                if self.wsDecPT.cell(row=2, column=8).value == None:
-                    self.wsDecPT.cell(row=2, column=8).value = myDate.strftime("%d.%m.%Y")
-                    self.wsDecPT.cell(row=2, column=9).value = "- " + myDateNext.strftime("%d.%m.%Y")
-                if self.wsNrSol.cell(row=2, column=6).value == None:
-                    self.wsNrSol.cell(row=2, column=6).value = myDate.strftime("%d.%m.%Y")
-                    self.wsNrSol.cell(row=2, column=7).value = "- " + myDateNext.strftime("%d.%m.%Y")
-                    self.wbDecZil.save(self.rapFile)
+                myMonthPath = myPath + "/" + str(self.myMonth)
+                dirControl = os.path.isdir(myMonthPath)
+                if not dirControl:
+                    os.mkdir(myMonthPath)
 
+                if int(self.myHour) >= 8:
+                    self.rapFile = myMonthPath + "/" + str(self.myDay) + " Raport.xlsx"
+                else:
+                    self.rapFile = myMonthPath + "/" + str(myDayMinus) + " Raport.xlsx"
+                fileControl = os.path.isfile(self.rapFile)
+
+                if not fileControl:
+                    myOriginal = os.path.abspath(".") + "/Bundle/Ungheni/Raport/Raport.xlsx"
+                    shutil.copyfile(myOriginal, self.rapFile)
+
+                self.wbDecZil = load_workbook(self.rapFile)
+                self.wsDecPT = self.wbDecZil["Deconectari PT"]
+                self.wsNrSol = self.wbDecZil["Numar solicitari"]
+
+                if int(self.myHour) >= 8:
+                    if self.wsDecPT.cell(row=2, column=8).value == None:
+                        self.wsDecPT.cell(row=2, column=8).value = myDate.strftime("%d.%m.%Y")
+                        self.wsDecPT.cell(row=2, column=9).value = "- " + myDateNext.strftime("%d.%m.%Y")
+                    if self.wsNrSol.cell(row=2, column=6).value == None:
+                        self.wsNrSol.cell(row=2, column=6).value = myDate.strftime("%d.%m.%Y")
+                        self.wsNrSol.cell(row=2, column=7).value = "- " + myDateNext.strftime("%d.%m.%Y")
+                        self.wbDecZil.save(self.rapFile)
+        except FileNotFoundError:
+            self.msSecCall("Nu este introdusa corect 'destinatia RAPORT PDJT (excel)'!")
+            self.setTrig()
 
     def dtContrSaidi(self):
-        self.destLoad()
-        if self.wsDest.cell(row=2, column=2).value == None:
-            self.msCall("destinatia registru SAIDI (excel)!")
+        try:
+            self.destLoad()
+            if self.wsDest.cell(row=2, column=2).value == None:
+                self.msCall("destinatia registru SAIDI (excel)!")
+                self.setTrig()
+            else:
+                destPath = self.wsDest.cell(row=2, column=2).value
+
+                self.myYear = datetime.datetime.now().strftime("%Y")
+                self.myMonth = datetime.datetime.now().strftime("%m")
+
+                # Introduc datele in SAIDI cu controlul mapelor si file-l
+                myPath = destPath + "/" + str(self.myYear)
+                dirControl = os.path.isdir(myPath)
+                if not dirControl:
+                    os.mkdir(myPath)
+
+                self.saidiFile = myPath + "/" + str(self.myMonth) + " Deconectari.xlsx"
+                fileControl = os.path.isfile(self.saidiFile)
+                if not fileControl:
+                    myOriginal = os.path.abspath(".") + "/Bundle/Ungheni/Deconectari/Deconectari.xlsx"
+                    shutil.copyfile(myOriginal, self.saidiFile)
+
+                self.wbDec = load_workbook(self.saidiFile)
+                self.wsDecProg = self.wbDec["programate-MT+JT"]
+                self.wsDecNeProg = self.wbDec["neprogramate-JT"]
+
+        except FileNotFoundError:
+            self.msSecCall("Nu este introdusa corect 'destinatia SAIDI (excel)'!")
             self.setTrig()
-        else:
-            destPath = self.wsDest.cell(row=2, column=2).value
-
-            self.myYear = datetime.datetime.now().strftime("%Y")
-            self.myMonth = datetime.datetime.now().strftime("%m")
-
-            # Introduc datele in SAIDI cu controlul mapelor si file-l
-            myPath = destPath + "/" + str(self.myYear)
-            dirControl = os.path.isdir(myPath)
-            if not dirControl:
-                os.mkdir(myPath)
-
-            self.saidiFile = myPath + "/" + str(self.myMonth) + " Deconectari.xlsx"
-            fileControl = os.path.isfile(self.saidiFile)
-            if not fileControl:
-                myOriginal = os.path.abspath(".") + "/Bundle/Ungheni/Deconectari/Deconectari.xlsx"
-                shutil.copyfile(myOriginal, self.saidiFile)
-
-            self.wbDec = load_workbook(self.saidiFile)
-            self.wsDecProg = self.wbDec["programate-MT+JT"]
-            self.wsDecNeProg = self.wbDec["neprogramate-JT"]
-
 
     def dtRegAl(self):
         self.destLoad()
@@ -6263,8 +6284,10 @@ class mainWindow(QMainWindow):
 
             #Incarc tabelul dec nepr, postgres
             self.cur.execute(f"""SELECT * FROM pg_tables WHERE SCHEMANAME='public'""")
+            isTable = False
             for table_tuple in self.cur.fetchall():
                 if table_tuple[1] == f"decnepr_{self.alYear}_{self.MonthToNumb(self.decNeprCombo.currentText())}":
+                    isTable = True
                     if self.ofAnNepr.currentText() != "Toate oficiile":
                         self.cur.execute(f"""SELECT * FROM decnepr_{self.alYear}_{self.MonthToNumb(self.decNeprCombo.currentText())} WHERE oficiul='{self.abrOficiiSec(self.ofAnNepr.currentText())}'""")
                     else:
@@ -6455,8 +6478,10 @@ class mainWindow(QMainWindow):
                     self.anNeprMdi.setGeometry(100, 100, 1000, 600)
                     self.anNeprMdi.showMaximized()
                     self.anNeprMdi.show()
-                else:
-                    self.msThrdCall(f"""Nu exista date pentru luna {self.decNeprCombo.currentText()}""")
+            if isTable == False:
+                self.msSecCall(f"Nu exista date pentru luna "
+                               f"'{self.decNeprCombo.currentText()}'!")
+                self.decNeprCombo.setCurrentText(self.NumbToMonth(self.alMonth))
             self.cur.close()
         else:
             self.msSecCall(f"Pentru oficiul {self.ofAnProg.currentText()} nu exista date!")
