@@ -5035,7 +5035,6 @@ class mainWindow(QMainWindow):
                                     k = 10
                                 compens = round(0.01 * 160 * 2.04 * k, 2)
 
-
                         #Introduc datele in Postgres
                         self.cur.execute("SELECT * FROM pg_tables "
                                          "WHERE SCHEMANAME='public'")
@@ -5047,7 +5046,39 @@ class mainWindow(QMainWindow):
                                                  f"{self.alYear}_{self.alMonth} "
                                                  f"ORDER BY decnepr_id DESC LIMIT 1")
                                 nrDec = self.cur.fetchall()[0][0] + 1
-
+                                timeNow = self.alTime.strftime("%d.%m.%y %H:%M")
+                                self.cur.execute(f"""INSERT INTO decnepr_{self.alYear}_{self.alMonth} (
+                                                 oficiul,
+                                                 nr_ordine,
+                                                 pt,
+                                                 fid_04kv,
+                                                 data_dec,
+                                                 data_conect,
+                                                 durata,
+                                                 cons_cas,
+                                                 cons_ec,
+                                                 total,
+                                                 localitate,
+                                                 cauza,
+                                                 termen,
+                                                 compens
+                                                )
+                                                 VALUES (
+                                                 '{self.data.at[self.modRow, 0]}',
+                                                 '{nrDec}',
+                                                 '{self.data.at[self.modRow, 4]}',
+                                                 '{self.data.at[self.modRow, 6]}',
+                                                 '{valuePregList[1]}',
+                                                 '{timeNow}',
+                                                 '{myDeltaHour}',
+                                                 '{self.fidNrCas}',
+                                                 '{self.fidNrEc}',
+                                                 '{self.fidNrCas + self.fidNrEc}',
+                                                 '{self.data.at[self.modRow, 5]}',
+                                                 '{self.data.at[self.modRow, 7]}',
+                                                 '{termText}',
+                                                 '{compens}')""")
+                                self.conn.commit()
                         self.cur.close()
                         # for i in self.db.deconect_app_deconect.find().sort("_id", -1).limit(1):
                         #     self.nrDec = int(i["id"]) + 1
