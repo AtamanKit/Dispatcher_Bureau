@@ -5995,32 +5995,32 @@ class mainWindow(QMainWindow):
 
                     data.drop(i - 1, inplace=True)
             data.sort_values(by="nr_dec", inplace=True, ignore_index=True, ascending=False)
-            # Calculez termenul reglementat urban, rural, suma compensatiilor
-            for i in range(len(data)):
-                if data.at[i, "localitate"] == None:
-                    data.at[i, "localitate"] = ""
-                if data.at[i, "compens"] == None:
-                    data.at[i, "compens"] = 0
-                if data.at[i, "localitate"] == "" or bool(re.search("or[.]", data.at[i, "localitate"])):
-                    if data.at[i, "nr_dec"] <= 9:
-                        data.at[i, "nr_regl"] = "Incadrat"
-                    elif data.at[i, "nr_dec"] > 9:
-                        data.at[i, "nr_regl"] = "Depasit cu " + \
-                                                str(data.at[i, "nr_dec"] - 9) + "dec."
-                        data.at[i, "compens"] = round(0.01 * (160 * 12) * 2.04 * \
-                                                      (data.at[i, "nr_dec"] - 9), 2)
-                    else:
-                        data.at[i, "nr_regl"] = "Eroare"
-                else:
-                    if data.at[i, "nr_dec"] <= 12:
-                        data.at[i, "nr_regl"] = "Incadrat"
-                    elif data.at[i, "nr_dec"] > 12:
-                        data.at[i, "nr_regl"] = "Depasit cu " + \
-                                                str(data.at[i, "nr_dec"] - 12) + "dec."
-                        data.at[i, "compens"] = round(0.01 * (160 * 12) * 2.04 * \
-                                                      (data.at[i, "nr_dec"] - 12), 2)
-                    else:
-                        data.at[i, "nr_regl"] = "Eroare"
+            # # Calculez termenul reglementat urban, rural, suma compensatiilor
+            # for i in range(len(data)):
+            #     if data.at[i, "localitate"] == None:
+            #         data.at[i, "localitate"] = ""
+            #     if data.at[i, "compens"] == None:
+            #         data.at[i, "compens"] = 0
+            #     if data.at[i, "localitate"] == "" or bool(re.search("or[.]", data.at[i, "localitate"])):
+            #         if data.at[i, "nr_dec"] <= 9:
+            #             data.at[i, "nr_regl"] = "Incadrat"
+            #         elif data.at[i, "nr_dec"] > 9:
+            #             data.at[i, "nr_regl"] = "Depasit cu " + \
+            #                                     str(data.at[i, "nr_dec"] - 9) + "dec."
+            #             data.at[i, "compens"] = round(0.01 * (160 * 12) * 2.04 * \
+            #                                           (data.at[i, "nr_dec"] - 9), 2)
+            #         else:
+            #             data.at[i, "nr_regl"] = "Eroare"
+            #     else:
+            #         if data.at[i, "nr_dec"] <= 12:
+            #             data.at[i, "nr_regl"] = "Incadrat"
+            #         elif data.at[i, "nr_dec"] > 12:
+            #             data.at[i, "nr_regl"] = "Depasit cu " + \
+            #                                     str(data.at[i, "nr_dec"] - 12) + "dec."
+            #             data.at[i, "compens"] = round(0.01 * (160 * 12) * 2.04 * \
+            #                                           (data.at[i, "nr_dec"] - 12), 2)
+            #         else:
+            #             data.at[i, "nr_regl"] = "Eroare"
 
             header = ["anlzan21p_id",
                       "Oficiul",
@@ -6041,6 +6041,8 @@ class mainWindow(QMainWindow):
             self.tableAnPr.resizeColumnsToContents()
             self.tableAnPr.verticalHeader().hide()
             self.tableAnPr.hideColumn(0)
+            self.tableAnPr.hideColumn(7)
+            self.tableAnPr.hideColumn(8)
             self.tableAnPr.setSelectionBehavior(QAbstractItemView.SelectRows)
 
             title = QLabel()
@@ -6083,19 +6085,26 @@ class mainWindow(QMainWindow):
                                             nr_dec_tot = '{nr_dec_tot}',
                                             saidi = '{round(cons_dec_tot * time_min / cons_tot, 2)}',
                                             saifi = '{round(cons_dec_tot / cons_tot, 2)}',
-                                            caidi = ROUND (saidi / saifi, 1)
+                                            caidi = ROUND (saidi / {cons_dec_tot / cons_tot}, 1)
                                         WHERE oficiul = '{of_ales}';
                                         """)
             self.conn.commit()
 
-            # Incarc tabelul dec nepr, mongo
-            if self.ofAnProg.currentText() != "Toate oficiile":
-                tuples = self.db.deconect_app_deconect.find({
-                    "oficiul": self.abrOficiiSec(self.ofAnProg.currentText())
-                })
-            else:
-                tuples = self.db.deconect_app_deconect.find()
+            # Incarc tabelul dec nepr, postgres
+            self.cur.execute(f"""SELECT * FROM pg_tables WHERE SCHEMANAME='public'""")
+
+            for table_tuple in self.cur.fetchall():
+                if table_tuple[1] == f"decpr_{self.alYear}_{self.MonthToNumb(self.decPrCombo.currentText())}":
+
+                    if self.ofAnProg.currentText() != "Toate oficiile":
+                        self.cur.execute(
+                            f"""SELECT * FROM decpr_{self.alYear}_{self.MonthToNumb(self.decPrCombo.currentText())} WHERE oficiul='{self.abrOficiiSec(self.ofAnProg.currentText())}'""")
+                    else:
+                        self.cur.execute(
+                            f"""SELECT * FROM decpr_{self.alYear}_{self.MonthToNumb(self.decPrCombo.currentText())}""")
+            tuples = self.cur.fetchall()
             column_names = [
+                "decpr_id",
                 "oficiul",
                 "nr_ordine",
                 "pt",
@@ -6110,11 +6119,11 @@ class mainWindow(QMainWindow):
                 "cauza",
                 "termen",
                 "compens",
-                "id",
             ]
 
             data = pd.DataFrame(tuples, columns=column_names)
             header = [
+                "decpr_id",
                 "Oficiul",
                 "Nr.",
                 "PT",
@@ -6128,29 +6137,29 @@ class mainWindow(QMainWindow):
                 "Localitate",
                 "Cauza\ndeconectarii",
                 "Termen\nreglementat",
-                "Compensatie\n(lei)",
-                "id",
+                "Compensatie\n(lei)"
             ]
-            data.sort_values(by="id", ignore_index=True, ascending=False, inplace=True)
+            data.sort_values(by="decpr_id", ignore_index=True, ascending=False, inplace=True)
 
             model = TableModel(data, header)
 
             tableDec = QTableView()
             tableDec.setModel(model)
             tableDec.setStyleSheet('background-color: rgb(200, 200, 200)')
-            tableDec.hideColumn(14)
-            tableDec.setColumnWidth(0, 40)
+            tableDec.hideColumn(0)
             tableDec.setColumnWidth(1, 40)
-            tableDec.setColumnWidth(2, 70)
-            tableDec.setColumnWidth(3, 40)
+            tableDec.setColumnWidth(2, 40)
+            tableDec.setColumnWidth(3, 70)
             tableDec.setColumnWidth(4, 70)
-            tableDec.setColumnWidth(5, 70)
-            tableDec.setColumnWidth(6, 70)
-            tableDec.setColumnWidth(7, 40)
+            tableDec.setColumnWidth(5, 100)
+            tableDec.setColumnWidth(6, 100)
+            tableDec.setColumnWidth(7, 70)
             tableDec.setColumnWidth(8, 40)
             tableDec.setColumnWidth(9, 40)
+            tableDec.setColumnWidth(10, 40)
             tableDec.resizeRowsToContents()
             tableDec.verticalHeader().hide()
+            tableDec.setSelectionBehavior(QAbstractItemView.SelectRows)
 
             yTitle = QLabel("Tabelul anual:")
             yTitle.setStyleSheet('font-weight: bold; padding-left: 10%')
@@ -6427,7 +6436,7 @@ class mainWindow(QMainWindow):
                                     nr_dec_tot = '{nr_dec_tot}',
                                     saidi = '{round(cons_dec_tot * time_min / cons_tot, 2)}',
                                     saifi = '{round(cons_dec_tot / cons_tot, 2)}',
-                                    caidi = ROUND (saidi / saifi, 1)
+                                    caidi = ROUND (saidi / {cons_dec_tot / cons_tot}, 1)
                                 WHERE oficiul = '{of_ales}';
                                 """)
             self.conn.commit()
@@ -6487,7 +6496,6 @@ class mainWindow(QMainWindow):
             tableDec.setModel(model)
             tableDec.setStyleSheet('background-color: rgb(200, 200, 200)')
             tableDec.hideColumn(0)
-            # tableDec.setColumnWidth(0, 40)
             tableDec.setColumnWidth(1, 40)
             tableDec.setColumnWidth(2, 40)
             tableDec.setColumnWidth(3, 70)
@@ -6498,7 +6506,6 @@ class mainWindow(QMainWindow):
             tableDec.setColumnWidth(8, 40)
             tableDec.setColumnWidth(9, 40)
             tableDec.setColumnWidth(10, 40)
-            # tableDec.setColumnWidth(14, 70)
             tableDec.resizeRowsToContents()
             tableDec.verticalHeader().hide()
             tableDec.setSelectionBehavior(QAbstractItemView.SelectRows)
