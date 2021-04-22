@@ -736,6 +736,8 @@ class mainWindow(QMainWindow):
 
         self.dublControl = False
 
+        self.anNeprMdiContr = False
+
         #Tabela angajati
         self.tableAng = QTableView()
         #Controlez la terminarea lucrarilor ca nu e deschis registru autorizatii
@@ -5044,12 +5046,10 @@ class mainWindow(QMainWindow):
                                 self.cur.execute(f"SELECT decnepr_id FROM decnepr_"
                                                  f"{self.alYear}_{self.alMonth} "
                                                  f"ORDER BY decnepr_id DESC LIMIT 1")
-                                if self.cur.fetchall() == []:
-                                    nrDec = 0
-                                else:
-                                    nrDec = self.cur.fetchall()[0][0] + 1
+
+                                nrDec = self.cur.fetchall()[0][0] + 1
                                 timeNow = self.alTime.strftime("%d.%m.%y %H:%M")
-                                self.cur.execute(f"""INSERT INTO decnepr_2021_04 (
+                                self.cur.execute(f"""INSERT INTO decnepr_{self.alYear}_{self.alMonth} (
                                                     oficiul, 
                                                     nr_ordine, 
                                                     pt, 
@@ -5106,11 +5106,11 @@ class mainWindow(QMainWindow):
                                              f"{self.alYear}_{self.alMonth} "
                                              f"ORDER BY decnepr_id DESC LIMIT 1")
                             if self.cur.fetchall() == []:
-                                nrDec = 0
+                                nrDec = 1
                             else:
                                 nrDec = self.cur.fetchall()[0][0] + 1
                             timeNow = self.alTime.strftime("%d.%m.%y %H:%M")
-                            self.cur.execute(f"""INSERT INTO decnepr_2021_04 (
+                            self.cur.execute(f"""INSERT INTO decnepr_{self.alYear}_{self.alMonth} (
                                                 oficiul, 
                                                 nr_ordine, 
                                                 pt, 
@@ -6233,19 +6233,25 @@ class mainWindow(QMainWindow):
         self.ofAnNepr.addItems(ofList)
         self.ofAnNepr.setStyleSheet('padding-left:10%; font-size:12px')
         self.ofAnNepr.setFixedHeight(25)
-        # self.ofAnNepr.setFixedWidth(100)
+        self.ofAnNepr.setFixedWidth(100)
         self.ofAnNepr.currentTextChanged.connect(self.AnNeprFunc)
 
         self.decNeprCombo = QComboBox()
         self.decNeprCombo.addItems(self.mnList)
         self.decNeprCombo.setStyleSheet('padding-left: 10%; font-size: 12px')
-        self.decNeprCombo.setFixedHeight(20)
+        self.decNeprCombo.setFixedHeight(25)
+        self.decNeprCombo.setFixedWidth(100)
         self.decNeprCombo.setCurrentText(self.NumbToMonth(self.alMonth))
         self.decNeprCombo.currentTextChanged.connect(self.AnNeprFunc)
 
         self.AnNeprFunc()
 
     def AnNeprFunc(self):
+        if self.anNeprMdiContr == True:
+            self.anNeprMdi.close()
+
+        self.anNeprMdiContr = True
+
         self.postgresLoad()
 
         if self.ofAnNepr.currentText() == "Toate oficiile":
@@ -6341,7 +6347,7 @@ class mainWindow(QMainWindow):
             hbox = QHBoxLayout()
             hbox.addWidget(title)
             hbox.addWidget(self.ofAnNepr)
-            hbox.setStretch(1,1)
+            hbox.addStretch(1)
             # hbox.addWidget(emptyLb)
             # hbox.addWidget(emptyLb)
 
@@ -6379,204 +6385,204 @@ class mainWindow(QMainWindow):
 
             #Incarc tabelul dec nepr, postgres
             self.cur.execute(f"""SELECT * FROM pg_tables WHERE SCHEMANAME='public'""")
-            isTable = False
+            # isTable = False
             for table_tuple in self.cur.fetchall():
                 if table_tuple[1] == f"decnepr_{self.alYear}_{self.MonthToNumb(self.decNeprCombo.currentText())}":
-                    isTable = True
+                    # isTable = True
                     if self.ofAnNepr.currentText() != "Toate oficiile":
                         self.cur.execute(f"""SELECT * FROM decnepr_{self.alYear}_{self.MonthToNumb(self.decNeprCombo.currentText())} WHERE oficiul='{self.abrOficiiSec(self.ofAnNepr.currentText())}'""")
                     else:
                         self.cur.execute(f"""SELECT * FROM decnepr_{self.alYear}_{self.MonthToNumb(self.decNeprCombo.currentText())}""")
-                    tuples = self.cur.fetchall()
-                    column_names = [
-                        "decnepr_id",
-                        "oficiul",
-                        "nr_ordine",
-                        "pt",
-                        "fid_04kv",
-                        "data_dec",
-                        "data_conect",
-                        "durata",
-                        "cons_cas",
-                        "cons_ec",
-                        "total",
-                        "localitate",
-                        "cauza",
-                        "termen",
-                        "compens",
-                    ]
+            tuples = self.cur.fetchall()
+            column_names = [
+                "decnepr_id",
+                "oficiul",
+                "nr_ordine",
+                "pt",
+                "fid_04kv",
+                "data_dec",
+                "data_conect",
+                "durata",
+                "cons_cas",
+                "cons_ec",
+                "total",
+                "localitate",
+                "cauza",
+                "termen",
+                "compens",
+            ]
 
-                    data = pd.DataFrame(tuples, columns=column_names)
-                    header = [
-                        "decnepr_id",
-                        "Oficiul",
-                        "Nr.",
-                        "PT",
-                        "Fider",
-                        "Data si ora\ndeconectarii",
-                        "Data si ora\nconectarii",
-                        "Durata\nintreruperii",
-                        "Cons.\ncas.",
-                        "Cons.\nn-cas.",
-                        "Total",
-                        "Localitate",
-                        "Cauza\ndeconectarii",
-                        "Termen\nreglementat",
-                        "Compensatie\n(lei)",
-                    ]
-                    data.sort_values(by="decnepr_id", ignore_index=True, ascending=False, inplace=True)
+            data = pd.DataFrame(tuples, columns=column_names)
+            header = [
+                "decnepr_id",
+                "Oficiul",
+                "Nr.",
+                "PT",
+                "Fider",
+                "Data si ora\ndeconectarii",
+                "Data si ora\nconectarii",
+                "Durata\nintreruperii",
+                "Cons.\ncas.",
+                "Cons.\nn-cas.",
+                "Total",
+                "Localitate",
+                "Cauza\ndeconectarii",
+                "Termen\nreglementat",
+                "Compensatie\n(lei)",
+            ]
+            data.sort_values(by="decnepr_id", ignore_index=True, ascending=False, inplace=True)
 
-                    model = TableModel(data, header)
+            model = TableModel(data, header)
 
-                    tableDec = QTableView()
-                    tableDec.setModel(model)
-                    tableDec.setStyleSheet('background-color: rgb(200, 200, 200)')
-                    tableDec.hideColumn(0)
-                    # tableDec.setColumnWidth(0, 40)
-                    tableDec.setColumnWidth(1, 40)
-                    tableDec.setColumnWidth(2, 40)
-                    tableDec.setColumnWidth(3, 70)
-                    tableDec.setColumnWidth(4, 70)
-                    tableDec.setColumnWidth(5, 100)
-                    tableDec.setColumnWidth(6, 100)
-                    tableDec.setColumnWidth(7, 70)
-                    tableDec.setColumnWidth(8, 40)
-                    tableDec.setColumnWidth(9, 40)
-                    tableDec.setColumnWidth(10, 40)
-                    # tableDec.setColumnWidth(14, 70)
-                    tableDec.resizeRowsToContents()
-                    tableDec.verticalHeader().hide()
-                    tableDec.setSelectionBehavior(QAbstractItemView.SelectRows)
+            tableDec = QTableView()
+            tableDec.setModel(model)
+            tableDec.setStyleSheet('background-color: rgb(200, 200, 200)')
+            tableDec.hideColumn(0)
+            # tableDec.setColumnWidth(0, 40)
+            tableDec.setColumnWidth(1, 40)
+            tableDec.setColumnWidth(2, 40)
+            tableDec.setColumnWidth(3, 70)
+            tableDec.setColumnWidth(4, 70)
+            tableDec.setColumnWidth(5, 100)
+            tableDec.setColumnWidth(6, 100)
+            tableDec.setColumnWidth(7, 70)
+            tableDec.setColumnWidth(8, 40)
+            tableDec.setColumnWidth(9, 40)
+            tableDec.setColumnWidth(10, 40)
+            # tableDec.setColumnWidth(14, 70)
+            tableDec.resizeRowsToContents()
+            tableDec.verticalHeader().hide()
+            tableDec.setSelectionBehavior(QAbstractItemView.SelectRows)
 
-                    yTitle = QLabel("Tabelul anual:")
-                    yTitle.setStyleSheet('font-weight: bold; padding-left: 10%')
+            yTitle = QLabel("Tabelul anual:")
+            yTitle.setStyleSheet('font-weight: bold; padding-left: 10%')
 
-                    mTitle = QLabel("Tabelul lunar:")
-                    mTitle.setStyleSheet('font-weight: bold; padding-left: 10px')
+            mTitle = QLabel("Tabelul lunar:")
+            mTitle.setStyleSheet('font-weight: bold; padding-left: 10px')
 
-                    titleCombo_hbox = QHBoxLayout()
-                    titleCombo_hbox.addWidget(mTitle)
-                    titleCombo_hbox.addWidget(self.decNeprCombo)
-                    titleCombo_hbox.setStretch(1, 1)
+            titleCombo_hbox = QHBoxLayout()
+            titleCombo_hbox.addWidget(mTitle)
+            titleCombo_hbox.addWidget(self.decNeprCombo)
+            titleCombo_hbox.addStretch(1)
 
-                    tablesFrame = QFrame()
-                    tb_vbox = QVBoxLayout()
-                    tb_vbox.addWidget(yTitle)
-                    tb_vbox.addWidget(self.tableAnNepr)
-                    tb_vbox.addLayout(titleCombo_hbox)
-                    tb_vbox.addWidget(tableDec)
-                    tablesFrame.setLayout(tb_vbox)
+            tablesFrame = QFrame()
+            tb_vbox = QVBoxLayout()
+            tb_vbox.addWidget(yTitle)
+            tb_vbox.addWidget(self.tableAnNepr)
+            tb_vbox.addLayout(titleCombo_hbox)
+            tb_vbox.addWidget(tableDec)
+            tablesFrame.setLayout(tb_vbox)
 
-                    #Incarc tabelul saidi
-                    self.cur.execute('SELECT * FROM saidin ORDER BY saidin_id')
-                    tuples = self.cur.fetchall()
-                    column_names = [
-                        "saidi_id",
-                        "oficiul",
-                        "cons_cas",
-                        "cons_ec",
-                        "cons_tot",
-                        "cons_dec",
-                        "t_dec",
-                        "nr_dec_tot",
-                        "saidi",
-                        "saifi",
-                        "caidi"
-                    ]
+            #Incarc tabelul saidi
+            self.cur.execute('SELECT * FROM saidin ORDER BY saidin_id')
+            tuples = self.cur.fetchall()
+            column_names = [
+                "saidi_id",
+                "oficiul",
+                "cons_cas",
+                "cons_ec",
+                "cons_tot",
+                "cons_dec",
+                "t_dec",
+                "nr_dec_tot",
+                "saidi",
+                "saifi",
+                "caidi"
+            ]
 
-                    data = pd.DataFrame(tuples, columns=column_names)
-                    header = [
-                        "saidin_id",
-                        "Oficiul",
-                        "Cons.casn.",
-                        "Cons.non-casn.",
-                        "Cons.total",
-                        "Cons.total deconect",
-                        "Timpul total de deconect",
-                        "Nr.total de deconect.",
-                        "SAIDI",
-                        "SAIFI",
-                        "CAIDI"
-                    ]
+            data = pd.DataFrame(tuples, columns=column_names)
+            header = [
+                "saidin_id",
+                "Oficiul",
+                "Cons.casn.",
+                "Cons.non-casn.",
+                "Cons.total",
+                "Cons.total deconect",
+                "Timpul total de deconect",
+                "Nr.total de deconect.",
+                "SAIDI",
+                "SAIFI",
+                "CAIDI"
+            ]
 
-                    #Creez tabelul saidin
-                    self.tableSaidiN = QTableView()
-                    model = TableModel(data, header)
-                    self.tableSaidiN.setModel(model)
-                    self.tableSaidiN.setStyleSheet('Background-color: rgb(200, 200, 200)')
-                    self.tableSaidiN.resizeColumnsToContents()
-                    self.tableSaidiN.verticalHeader().hide()
-                    self.tableSaidiN.hideColumn(0)
-                    self.tableSaidiN.setSelectionBehavior(QAbstractItemView.SelectRows)
+            #Creez tabelul saidin
+            self.tableSaidiN = QTableView()
+            model = TableModel(data, header)
+            self.tableSaidiN.setModel(model)
+            self.tableSaidiN.setStyleSheet('Background-color: rgb(200, 200, 200)')
+            self.tableSaidiN.resizeColumnsToContents()
+            self.tableSaidiN.verticalHeader().hide()
+            self.tableSaidiN.hideColumn(0)
+            self.tableSaidiN.setSelectionBehavior(QAbstractItemView.SelectRows)
 
-                    #Creez graficul saidin
-                    canvas = FigureCanvas(Figure(figsize=(1, 5), facecolor=(.78, .78, .78)))
+            #Creez graficul saidin
+            canvas = FigureCanvas(Figure(figsize=(1, 5), facecolor=(.78, .78, .78)))
 
-                    of_labels = []
-                    for i in self.ofList:
-                        of_labels.append(i)
+            of_labels = []
+            for i in self.ofList:
+                of_labels.append(i)
 
-                    of_saidi = []
-                    for i in range(len(data)-1):
-                        of_saidi.append(int(round(data.at[i, "saidi"])))
+            of_saidi = []
+            for i in range(len(data)-1):
+                of_saidi.append(int(round(data.at[i, "saidi"])))
 
-                    x = np.arange(len(of_labels))
+            x = np.arange(len(of_labels))
 
-                    ax = canvas.figure.subplots()
-                    rects = ax.bar(x, of_saidi)
+            ax = canvas.figure.subplots()
+            rects = ax.bar(x, of_saidi)
 
-                    ax.set_facecolor('#999')
-                    ax.set_ylabel("SAIDI")
-                    # ax.set_xlabel("Denumire Oficii")
-                    ax.set_title("SAIDI pe oficii")
-                    ax.set_xticks(x)
-                    ax.set_xticklabels(of_labels, rotation=25)
-                    # ax.xticks(rotation='vertical')
+            ax.set_facecolor('#999')
+            ax.set_ylabel("SAIDI")
+            # ax.set_xlabel("Denumire Oficii")
+            ax.set_title("SAIDI pe oficii")
+            ax.set_xticks(x)
+            ax.set_xticklabels(of_labels, rotation=25)
+            # ax.xticks(rotation='vertical')
 
-                    sdTabTitle = QLabel("Tabelul SAIDI (reprezentare grafica):")
-                    sdTabTitle.setStyleSheet('padding-left: 10%; font-weight: bold')
+            sdTabTitle = QLabel("Tabelul SAIDI (reprezentare grafica):")
+            sdTabTitle.setStyleSheet('padding-left: 10%; font-weight: bold')
 
-                    grTitle = QLabel("SAIDI pe oficii:")
-                    grTitle.setStyleSheet('padding-left: 10%; font-weight: bold')
+            grTitle = QLabel("SAIDI pe oficii:")
+            grTitle.setStyleSheet('padding-left: 10%; font-weight: bold')
 
-                    ax_Frame = QFrame()
-                    ax_vbox = QVBoxLayout()
-                    ax_vbox.addWidget(sdTabTitle)
-                    ax_vbox.addWidget(self.tableSaidiN)
-                    ax_vbox.addWidget(grTitle)
-                    ax_vbox.addWidget(canvas)
-                    ax_Frame.setLayout(ax_vbox)
-                    ax.bar_label(rects)
+            ax_Frame = QFrame()
+            ax_vbox = QVBoxLayout()
+            ax_vbox.addWidget(sdTabTitle)
+            ax_vbox.addWidget(self.tableSaidiN)
+            ax_vbox.addWidget(grTitle)
+            ax_vbox.addWidget(canvas)
+            ax_Frame.setLayout(ax_vbox)
+            ax.bar_label(rects)
 
-                    myScr = app.primaryScreen()
-                    myScrAv = myScr.availableGeometry()
-                    myWith = myScrAv.width()
+            myScr = app.primaryScreen()
+            myScrAv = myScr.availableGeometry()
+            myWith = myScrAv.width()
 
-                    splitter = QSplitter(Qt.Horizontal)
-                    splitter.addWidget(tablesFrame)
-                    splitter.addWidget(ax_Frame)
-                    splitter.handle(1).setStyleSheet('Background-color: rgb(191, 60, 60)')
-                    splitter.setSizes([myWith - myWith/2.2, myWith/2.2])
+            splitter = QSplitter(Qt.Horizontal)
+            splitter.addWidget(tablesFrame)
+            splitter.addWidget(ax_Frame)
+            splitter.handle(1).setStyleSheet('Background-color: rgb(191, 60, 60)')
+            splitter.setSizes([myWith - myWith/2.2, myWith/2.2])
 
-                    totalFrame = QFrame()
-                    vbox = QVBoxLayout()
-                    vbox.addLayout(hbox)
-                    vbox.addWidget(splitter)
-                    vbox.setStretch(1, 1)
-                    totalFrame.setLayout(vbox)
+            totalFrame = QFrame()
+            vbox = QVBoxLayout()
+            vbox.addLayout(hbox)
+            vbox.addWidget(splitter)
+            vbox.setStretch(1, 1)
+            totalFrame.setLayout(vbox)
 
 
-                    self.anNeprMdi = QMdiSubWindow()
-                    self.myMidi.addSubWindow(self.anNeprMdi)
-                    self.anNeprMdi.setWidget(totalFrame)
-                    self.anNeprMdi.setWindowIcon(QIcon(QPixmap(1, 1)))
-                    self.anNeprMdi.setGeometry(100, 100, 1000, 600)
-                    self.anNeprMdi.showMaximized()
-                    self.anNeprMdi.show()
-            if isTable == False:
-                self.msSecCall(f"Nu exista date pentru luna "
-                               f"'{self.decNeprCombo.currentText()}'!")
-                self.decNeprCombo.setCurrentText(self.NumbToMonth(self.alMonth))
+            self.anNeprMdi = QMdiSubWindow()
+            self.myMidi.addSubWindow(self.anNeprMdi)
+            self.anNeprMdi.setWidget(totalFrame)
+            self.anNeprMdi.setWindowIcon(QIcon(QPixmap(1, 1)))
+            self.anNeprMdi.setGeometry(100, 100, 1000, 600)
+            self.anNeprMdi.showMaximized()
+            self.anNeprMdi.show()
+            # if isTable == False:
+            #     self.msSecCall(f"Nu exista date pentru luna "
+            #                    f"'{self.decNeprCombo.currentText()}'!")
+            #     self.decNeprCombo.setCurrentText(self.NumbToMonth(self.alMonth))
             self.cur.close()
         else:
             self.msSecCall(f"Pentru oficiul {self.ofAnProg.currentText()} nu exista date!")
@@ -7126,30 +7132,140 @@ class mainWindow(QMainWindow):
                     k = 10
                 compens = round(0.01 * 160 * 2.04 * k, 2)
 
-        #Working with MongoDB
-        for i in self.db.deconect_app_deconect.find().sort("_id", -1).limit(1):
-            self.nrDec = int(i["id"]) + 1
+        #Working with Postgres MongoDB
+        # for i in self.db.deconect_app_deconect.find().sort("_id", -1).limit(1):
+        #     self.nrDec = int(i["id"]) + 1
+        #
+        # self.db.deconect_app_deconect.insert_one({
+        #     "id": self.nrDec,
+        #     "oficiul": self.ofVar,
+        #     "nr_ordine": self.nrDec,
+        #     "pt": self.ptLine.text(),
+        #     "fid_04kv": self.ptFidLine.text(),
+        #     "data_dec": self.dtLine.text(),
+        #     "data_conect": datetime.datetime.now().strftime("%d.%m.%y %H:%M"),
+        #     "durata": myDeltaHour,
+        #     "cons_cas": str(self.fazaNrCas),
+        #     "cons_ec": str(self.fazaNrEc),
+        #     "total": str(self.fazaNrCas + self.fazaNrEc),
+        #     "localitate": myLocalitate,
+        #     "cauza": self.cauzaCombo.currentText(),
+        #     "compens": compens,
+        #     "termen": termText,
+        # })
 
-        self.db.deconect_app_deconect.insert_one({
-            "id": self.nrDec,
-            "oficiul": self.ofVar,
-            "nr_ordine": self.nrDec,
-            "pt": self.ptLine.text(),
-            "fid_04kv": self.ptFidLine.text(),
-            "data_dec": self.dtLine.text(),
-            "data_conect": datetime.datetime.now().strftime("%d.%m.%y %H:%M"),
-            "durata": myDeltaHour,
-            "cons_cas": str(self.fazaNrCas),
-            "cons_ec": str(self.fazaNrEc),
-            "total": str(self.fazaNrCas + self.fazaNrEc),
-            "localitate": myLocalitate,
-            "cauza": self.cauzaCombo.currentText(),
-            "compens": compens,
-            "termen": termText,
-        })
+        # Introduc datele in Postgres
+        self.postgresLoad()
+        self.cur.execute("SELECT * FROM pg_tables "
+                         "WHERE SCHEMANAME='public'")
+        isTable = False
+        for table_tuple in self.cur.fetchall():
+            if table_tuple[1] == f"decnepr_" \
+                                 f"{self.alYear}_" \
+                                 f"{self.alMonth}":
+                isTable = True
+                self.cur.execute(f"SELECT decnepr_id FROM decnepr_"
+                                 f"{self.alYear}_{self.alMonth} "
+                                 f"ORDER BY decnepr_id DESC LIMIT 1")
+
+                nrDec = self.cur.fetchall()[0][0] + 1
+                timeNow = self.alTime.strftime("%d.%m.%y %H:%M")
+                self.cur.execute(f"""INSERT INTO decnepr_{self.alYear}_{self.alMonth} (
+                                        oficiul, 
+                                        nr_ordine, 
+                                        pt, 
+                                        fid_04kv, 
+                                        data_dec, 
+                                        data_conect, 
+                                        durata, 
+                                        cons_cas, 
+                                        cons_ec, 
+                                        total, 
+                                        localitate, 
+                                        cauza, 
+                                        termen, 
+                                        compens
+                                ) 
+                                VALUES (
+                                        '{self.ofVar}', 
+                                        '{nrDec}', 
+                                        '{self.ptLine.text()}', 
+                                        '{self.ptFidLine.text()}', 
+                                        '{self.dtLine.text()}', 
+                                        '{timeNow}', 
+                                        '{myDeltaHour}', 
+                                        '{self.fazaNrCas}', 
+                                        '{self.fazaNrEc}', 
+                                        '{self.fazaNrCas + self.fazaNrEc}', 
+                                        '{myLocalitate}', 
+                                        '{self.cauzaCombo.currentText()}', 
+                                        '{termText}', 
+                                        '{compens}')"""
+                                 )
+                self.conn.commit()
+        if isTable == False:
+            self.cur.execute(f"""CREATE TABLE
+                            decnepr_{self.alYear}_{self.alMonth}(
+                            decnepr_id serial PRIMARY KEY,
+                            oficiul VARCHAR(32),
+                            nr_ordine INT4,
+                            pt VARCHAR(32),
+                            fid_04kv VARCHAR(32),
+                            data_dec VARCHAR(32),
+                            data_conect VARCHAR(32),
+                            durata VARCHAR(32),
+                            cons_cas INT4,
+                            cons_ec INT4,
+                            total INT4,
+                            localitate VARCHAR(32),
+                            cauza VARCHAR(256),
+                            termen VARCHAR(256),
+                            compens NUMERIC
+                            )""")
+            self.conn.commit()
+            self.cur.execute(f"SELECT decnepr_id FROM decnepr_"
+                             f"{self.alYear}_{self.alMonth} "
+                             f"ORDER BY decnepr_id DESC LIMIT 1")
+            if self.cur.fetchall() == []:
+                nrDec = 1
+            else:
+                nrDec = self.cur.fetchall()[0][0] + 1
+            timeNow = self.alTime.strftime("%d.%m.%y %H:%M")
+            self.cur.execute(f"""INSERT INTO decnepr_{self.alYear}_{self.alMonth} (
+                                    oficiul, 
+                                    nr_ordine, 
+                                    pt, 
+                                    fid_04kv, 
+                                    data_dec, 
+                                    data_conect, 
+                                    durata, 
+                                    cons_cas, 
+                                    cons_ec, 
+                                    total, 
+                                    localitate, 
+                                    cauza, 
+                                    termen, 
+                                    compens
+                            ) 
+                            VALUES (
+                                    '{self.ofVar}',
+                                    '{nrDec}', 
+                                    '{self.ptLine.text()}', 
+                                    '{self.ptFidLine.text()}', 
+                                    '{self.dtLine.text()}', 
+                                    '{timeNow}', 
+                                    '{myDeltaHour}', 
+                                    '{self.fazaNrCas}', 
+                                    '{self.fazaNrEc}', 
+                                    '{self.fazaNrCas + self.fazaNrEc}', 
+                                    '{myLocalitate}', 
+                                    '{self.cauzaCombo.currentText()}',
+                                    '{termText}', 
+                                    '{compens}')"""
+                             )
+            self.conn.commit()
 
         #Intruduc datele in postgres analiza anuala
-        self.postgresLoad()
         self.cur.execute(f"""INSERT INTO anlzan21n (
                                 oficiul,
                                 pt_fider,
@@ -7168,6 +7284,7 @@ class mainWindow(QMainWindow):
                             )"""
         )
         self.conn.commit()
+
         self.cur.close()
 
         #Working with excel
@@ -7389,6 +7506,8 @@ class mainWindow(QMainWindow):
             self.tabWindDec.close()
         if self.anControl:
             self.anWindow.close()
+        if self.anNeprMdiContr:
+            self.anNeprMdi.close()
 
         self.intTrig()
 
