@@ -4772,25 +4772,47 @@ class mainWindow(QMainWindow):
                         self.wsDecProg.cell(row=myMaxRow, column=19).value = \
                             self.data.at[self.modRow, 7]
 
-                        #Introduc datele in Excel analiza anuala
-                        anAnualMaxRow = self.wsAnAnualP.max_row + 1
-                        self.wsAnAnualP.cell(row=anAnualMaxRow, column=1).value = \
-                            self.data.at[self.modRow, 0]
-                        self.wsAnAnualP.cell(row=anAnualMaxRow, column=2).value = \
-                            self.data.at[self.modRow, 4] + " " + self.data.at[self.modRow, 6]
-                        self.wsAnAnualP.cell(row=anAnualMaxRow, column=3).value = \
-                            self.data.at[self.modRow, 5]
-                        self.wsAnAnualP.cell(row=anAnualMaxRow, column=4).value = \
-                            self.fidNrCas + self.fidNrEc
-                        self.wsAnAnualP.cell(row=anAnualMaxRow, column=5).value = \
-                            myDeltaHour
-                        self.wsAnAnualP.cell(row=anAnualMaxRow, column=6).value = \
-                            1
-                        try:
-                            self.wbAnAnual.save(self.fileAnAnual)
-                        except PermissionError:
-                            self.msSecCall("Datele din autorizatie, sectiunea PROGRAMAT \n"
-                                           "nu vor participa la analiza anuala (undeva este deschisa analiza anuala excel)!")
+                        #Introduc datele in postgres, analiza anuala
+                        self.postgresLoad()
+                        self.cur.execute(f"""INSERT INTO anlzan21p (
+                                                oficiul,
+                                                pt_fider,
+                                                localitate,
+                                                nr_cons,
+                                                ore,
+                                                nr_dec
+                                            ) 
+                                            VALUES (
+                                                '{self.data.at[self.modRow, 0]}',
+                                                '{self.data.at[self.modRow, 4] + " " + self.data.at[self.modRow, 6]}',
+                                                '{self.data.at[self.modRow, 5]}',
+                                                '{self.fidNrCas + self.fidNrEc}',
+                                                '{myDeltaHour}',
+                                                '{1}'
+                                            )"""
+                                         )
+                        self.conn.commit()
+                        self.cur.close()
+
+                        # #Introduc datele in Excel analiza anuala
+                        # anAnualMaxRow = self.wsAnAnualP.max_row + 1
+                        # self.wsAnAnualP.cell(row=anAnualMaxRow, column=1).value = \
+                        #     self.data.at[self.modRow, 0]
+                        # self.wsAnAnualP.cell(row=anAnualMaxRow, column=2).value = \
+                        #     self.data.at[self.modRow, 4] + " " + self.data.at[self.modRow, 6]
+                        # self.wsAnAnualP.cell(row=anAnualMaxRow, column=3).value = \
+                        #     self.data.at[self.modRow, 5]
+                        # self.wsAnAnualP.cell(row=anAnualMaxRow, column=4).value = \
+                        #     self.fidNrCas + self.fidNrEc
+                        # self.wsAnAnualP.cell(row=anAnualMaxRow, column=5).value = \
+                        #     myDeltaHour
+                        # self.wsAnAnualP.cell(row=anAnualMaxRow, column=6).value = \
+                        #     1
+                        # try:
+                        #     self.wbAnAnual.save(self.fileAnAnual)
+                        # except PermissionError:
+                        #     self.msSecCall("Datele din autorizatie, sectiunea PROGRAMAT \n"
+                        #                    "nu vor participa la analiza anuala (undeva este deschisa analiza anuala excel)!")
                         try:
                             self.wbDec.save(self.saidiFile)
                         except PermissionError:
@@ -5034,7 +5056,7 @@ class mainWindow(QMainWindow):
                                     k = 10
                                 compens = round(0.01 * 160 * 2.04 * k, 2)
 
-                        #Introduc datele in Postgres
+                        #Introduc datele in Postgres analiza lunara
                         self.cur.execute("SELECT * FROM pg_tables "
                                          "WHERE SCHEMANAME='public'")
                         isTable = False
@@ -5924,6 +5946,14 @@ class mainWindow(QMainWindow):
         self.ofAnProg.setFixedWidth(100)
         self.ofAnProg.currentTextChanged.connect(self.AnProgFunc)
 
+        self.decPrCombo = QComboBox()
+        self.decPrCombo.addItems(self.mnList)
+        self.decPrCombo.setStyleSheet('padding-left: 10%; font-size: 12px')
+        self.decPrCombo.setFixedHeight(25)
+        self.decPrCombo.setFixedWidth(100)
+        self.decPrCombo.setCurrentText(self.NumbToMonth(self.alMonth))
+        self.decPrCombo.currentTextChanged.connect(self.AnProgFunc)
+
         self.AnProgFunc()
 
     def AnProgFunc(self):
@@ -6003,28 +6033,28 @@ class mainWindow(QMainWindow):
                       "Compensatie (lei)"
                       ]
 
-            self.tableAnNepr = QTableView()
+            self.tableAnPr = QTableView()
             model = TableModel(data, header)
 
-            self.tableAnNepr.setModel(model)
-            self.tableAnNepr.setStyleSheet('Background-color: rgb(200, 200, 200)')
-            self.tableAnNepr.resizeColumnsToContents()
-            self.tableAnNepr.verticalHeader().hide()
-            self.tableAnNepr.hideColumn(0)
-            self.tableAnNepr.setSelectionBehavior(QAbstractItemView.SelectRows)
+            self.tableAnPr.setModel(model)
+            self.tableAnPr.setStyleSheet('Background-color: rgb(200, 200, 200)')
+            self.tableAnPr.resizeColumnsToContents()
+            self.tableAnPr.verticalHeader().hide()
+            self.tableAnPr.hideColumn(0)
+            self.tableAnPr.setSelectionBehavior(QAbstractItemView.SelectRows)
 
             title = QLabel()
             title.setText("Analiza anuala a deconectarilor programate, oficiul:")
             title.setStyleSheet('padding-left: 50%; font-size:24px; color:rgb(191, 60, 60)')
 
-            emptyLb = QLabel("")
+            # emptyLb = QLabel("")
 
             # titleFrame = QFrame()
             hbox = QHBoxLayout()
             hbox.addWidget(title)
             hbox.addWidget(self.ofAnProg)
-            hbox.addWidget(emptyLb)
-            hbox.addWidget(emptyLb)
+            hbox.addStretch(1)
+
 
             # Calculez datele pentru SAIDI
             cons_dec_tot = data.sum(axis=0)["nr_cons"]
@@ -6122,9 +6152,22 @@ class mainWindow(QMainWindow):
             tableDec.resizeRowsToContents()
             tableDec.verticalHeader().hide()
 
+            yTitle = QLabel("Tabelul anual:")
+            yTitle.setStyleSheet('font-weight: bold; padding-left: 10%')
+
+            mTitle = QLabel("Tabelul lunar:")
+            mTitle.setStyleSheet('font-weight: bold; padding-left: 10px')
+
+            titleCombo_hbox = QHBoxLayout()
+            titleCombo_hbox.addWidget(mTitle)
+            titleCombo_hbox.addWidget(self.decPrCombo)
+            titleCombo_hbox.addStretch(1)
+
             tablesFrame = QFrame()
             tb_vbox = QVBoxLayout()
-            tb_vbox.addWidget(self.tableAnNepr)
+            tb_vbox.addWidget(yTitle)
+            tb_vbox.addWidget(self.tableAnPr)
+            tb_vbox.addLayout(titleCombo_hbox)
             tb_vbox.addWidget(tableDec)
             tablesFrame.setLayout(tb_vbox)
 
@@ -6201,9 +6244,15 @@ class mainWindow(QMainWindow):
             ax_Frame.setLayout(ax_vbox)
             ax.bar_label(rects)
 
+            myScr = app.primaryScreen()
+            myScrAv = myScr.availableGeometry()
+            myWidth = myScrAv.width()
+
             splitter = QSplitter(Qt.Horizontal)
             splitter.addWidget(tablesFrame)
             splitter.addWidget(ax_Frame)
+            splitter.handle(1).setStyleSheet('Background-color: rgb(191, 60, 60)')
+            splitter.setSizes([myWidth - myWidth/2.2, myWidth/2.2])
 
             totalFrame = QFrame()
             vbox = QVBoxLayout()
@@ -6556,13 +6605,13 @@ class mainWindow(QMainWindow):
 
             myScr = app.primaryScreen()
             myScrAv = myScr.availableGeometry()
-            myWith = myScrAv.width()
+            myWidth = myScrAv.width()
 
             splitter = QSplitter(Qt.Horizontal)
             splitter.addWidget(tablesFrame)
             splitter.addWidget(ax_Frame)
             splitter.handle(1).setStyleSheet('Background-color: rgb(191, 60, 60)')
-            splitter.setSizes([myWith - myWith/2.2, myWith/2.2])
+            splitter.setSizes([myWidth - myWidth/2.2, myWidth/2.2])
 
             totalFrame = QFrame()
             vbox = QVBoxLayout()
