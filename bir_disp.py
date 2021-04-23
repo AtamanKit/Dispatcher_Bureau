@@ -5977,6 +5977,7 @@ class mainWindow(QMainWindow):
                         ]
         data = pd.DataFrame(tuples, columns=column_names)
         data.sort_values(by="pt_fider", inplace=True, ignore_index=True)
+        print(data.nunique(axis=0)["pt_fider"])
         if data.empty != True:
             for i in range(1, len(data)):
                 if data.at[i, "pt_fider"] == data.at[i - 1, "pt_fider"]:
@@ -5995,6 +5996,7 @@ class mainWindow(QMainWindow):
 
                     data.drop(i - 1, inplace=True)
             data.sort_values(by="nr_dec", inplace=True, ignore_index=True, ascending=False)
+            # print(data.shape[0])
             # # Calculez termenul reglementat urban, rural, suma compensatiilor
             # for i in range(len(data)):
             #     if data.at[i, "localitate"] == None:
@@ -6067,6 +6069,8 @@ class mainWindow(QMainWindow):
             time_min = time_sec / 60
 
             nr_dec_tot = data.sum(axis=0)["nr_dec"]
+
+            # print(cons_dec_tot)
 
             if self.ofAnProg.currentText() != "Toate oficiile":
                 of_ales = self.abrOficiiSec(self.ofAnProg.currentText())
