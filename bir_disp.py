@@ -5977,7 +5977,7 @@ class mainWindow(QMainWindow):
                         ]
         data = pd.DataFrame(tuples, columns=column_names)
         data.sort_values(by="pt_fider", inplace=True, ignore_index=True)
-        print(data.nunique(axis=0)["pt_fider"])
+        # print(data.nunique(axis=0)["pt_fider"])
         if data.empty != True:
             for i in range(1, len(data)):
                 if data.at[i, "pt_fider"] == data.at[i - 1, "pt_fider"]:
