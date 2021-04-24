@@ -989,8 +989,10 @@ class mainWindow(QMainWindow):
             return "Riscani"
 
     def lucruLineCh(self):
-        if self.lucrLine.currentText() == "Schimbare contor, consumator non-casnic" or \
-                self.lucrLine.currentText() == "Deconectarea, reconectarea consumatorilor":
+        if self.lucrLine.currentText() == "Schimbare contor, consumator non-casnic":
+            self.masLine_1.setText("Deconectati sarcina, deconectati si verificati lipsa tensiunei. Lucrarile se efectuiaza folosind mijloace individuale de protectie;")
+        elif self.lucrLine.currentText() == "Deconectarea, reconectarea consumatorilor" or \
+                self.lucrLine.currentText() == "Schimbare contor, consumator casnic":
             self.masLine_1.setText("Deconectati sarcina. Lucrarile se efectuiaza folosind mijloace individuale de protectie;")
         else:
             self.masLine_1.setText("Fara deconectari, de respectat distanta minim admisa (Tabelul nr. 1 NEI)")
@@ -3029,7 +3031,7 @@ class mainWindow(QMainWindow):
         self.masLine_2.setEnabled(False)
         self.masLine_3 = QLineEdit()
         self.masLine_3.setStyleSheet('background-color: #ffffff;  height:20')
-        self.masLine_3.setText("De respectat cerintele comisiei nationale extraordinare de sanatate"
+        self.masLine_3.setText("De respectat cerintele comisiei nationale extraordinare de sanatate "
                                "publica de prevenire a infectiei COVID 19.")
         self.masLine_3.setCursorPosition(0)
         self.masLine_3.setEnabled(False)
