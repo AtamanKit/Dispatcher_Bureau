@@ -3436,10 +3436,10 @@ class mainWindow(QMainWindow):
         try:
             self.data = pd.DataFrame(self.reg_al.find())
             myColumn = self.data.pop("_id")
-            self.data.insert(20, "_id", myColumn)
-            myColumn = self.data.pop("id")
-            self.data.insert(20, "id", myColumn)
-            self.data.columns = range(21)
+            self.data.insert(19, "_id", myColumn)
+            # myColumn = self.data.pop("id")
+            # self.data.insert(20, "id", myColumn)
+            self.data.columns = range(20)
             # print(self.data.at[2, 19])
             self.data.sort_index(ascending=False, inplace=True, ignore_index=True)
             header = ["Oficiul", "Nr. \nDS", "Nr. \nAL", "Instalatia", \
@@ -3451,7 +3451,7 @@ class mainWindow(QMainWindow):
                       "Masurile tehnice\n de asigurare a TS\ncu indic. deconect.\nlocurilor de\nmont legaturilor\n la pamint",\
                       "Semnatura\nlucratorilor\ncare au executat \ninstr. periodica \nsi care au\nfost instruiti",\
                       "Starea", "Pregat. locului\nde munca (data,\nora)", "Admiterea\nechipei (data,\nora)",
-                      "Terminarea\nlucrarilor (data,\nora)", "Linkul", "_id", "id"]
+                      "Terminarea\nlucrarilor (data,\nora)", "Linkul", "_id"]
             self.table = QTableView()
             self.model = TableModel(self.data, header)
 
@@ -5500,10 +5500,10 @@ class mainWindow(QMainWindow):
                        myMthMinus_month
 
             for j in self.db[myVarMin].find().sort("_id", -1).limit(1):
-                myNumb = int(j["id"])
+                myNumb = int(j["_id"])
                 self.reg_al = self.db[myVar]
                 self.reg_al.insert_one({
-                    "id": myNumb,
+                    "_id": myNumb,
                     "oficiul": "",
                     "nr_ds": "",
                     "nr_al": "",
@@ -5532,7 +5532,7 @@ class mainWindow(QMainWindow):
         myDateTime = datetime.datetime.now()
 
         for i in self.reg_al.find().sort("_id", -1).limit(1):
-            self.idAlDs = int(i["id"]) + 1
+            self.idAlDs = int(i["_id"]) + 1
 
         self.searchComma = re.search(",", self.ptLine.text())
         if self.searchComma:
@@ -5612,7 +5612,7 @@ class mainWindow(QMainWindow):
                         self.fileName = dlg.getOpenFileName()
                     link = self.fileName[0]
                     self.reg_al.insert_one({
-                        "id": self.idAlDs,
+                        "_id": self.idAlDs,
                         "oficiul": self.ofVar,
                         "nr_ds": self.idAlDs,
                         "nr_al": "",
@@ -5641,7 +5641,7 @@ class mainWindow(QMainWindow):
                     self.fileName = dlg.getOpenFileName()
                     link = self.fileName[0]
                     self.reg_al.insert_one({
-                        "id": self.idAlDs,
+                        "_id": self.idAlDs,
                         "oficiul": self.ofVar,
                         "nr_ds": "",
                         "nr_al": self.idAlDs,
