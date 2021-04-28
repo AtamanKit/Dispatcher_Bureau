@@ -575,9 +575,11 @@ class Worker(QRunnable):
         mainWindow.loadMongo(self)
 
         myTime = datetime.datetime.now()
-        for i in self.client.djUN.list_collection_names():
-            if i == "al_" + str(myTime.year) + "_" + str(myTime.month):
-                reg_alw = self.client.djUN.i
+        myYear = myTime.strftime('%Y')
+        myMonth = myTime.strftime('%m')
+        for i in self.client.djUN_test.list_collection_names():
+            if i == "al_" + myYear + "_" + myMonth:
+                reg_alw = self.client.djUN_test[i]
 
                 change_stream = reg_alw.watch([{
                     '$match': {
@@ -7009,7 +7011,7 @@ class mainWindow(QMainWindow):
 
     def deranjFunc(self):
         for i in self.db.der_app_deranj.find().sort("_id", -1).limit(1):
-            self.nrDeranj = int(i["id"]) + 1
+            self.nrDeranj = int(i["_id"]) + 1
         if self.ptLine.text() == "PT":
             self.ptLine.setText("")
         if self.ptFidLine.text() == "Fider nr.":
@@ -7017,7 +7019,7 @@ class mainWindow(QMainWindow):
         self.abrOficii()
         pyDateTime = datetime.datetime.now()
         self.db.der_app_deranj.insert_one({
-            "id": self.nrDeranj,
+            "_id": self.nrDeranj,
             "oficiul": self.ofVar,
             "nr_ordine": str(self.nrDeranj),
             "transmis": self.sfLine.text(),
@@ -7153,14 +7155,14 @@ class mainWindow(QMainWindow):
         if self.deranjControlPop == True:
             self.tabWindowDeranj.close()
 
-        self.data = pd.DataFrame(self.db.der_app_deranj.find({}, {"_id": 0}))
-        myColumn = self.data.pop("id")
-        self.data.insert(12, "id", myColumn)
+        self.data = pd.DataFrame(self.db.der_app_deranj.find())
+        myColumn = self.data.pop("_id")
+        self.data.insert(12, "_id", myColumn)
         self.data.columns = range(13)
         # print(self.data)
         self.data.sort_index(ascending=False, inplace=True, ignore_index=True)
         header = ["Oficiul", "Nr.", "Transmis", "Sectorul", "Instalatia", "Fider 10kV", "PT", "Fider 0,4kV",
-                  "Continutul", "Data, ora", "Semnatura, Responsabil", "Starea", "id"]
+                  "Continutul", "Data, ora", "Semnatura, Responsabil", "Starea", "_id"]
 
         self.tableDeranj = QTableView()
         self.model = TableModelDeranj(self.data, header)
