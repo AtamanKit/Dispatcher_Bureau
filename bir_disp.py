@@ -578,7 +578,7 @@ class Worker(QRunnable):
         myTime = datetime.datetime.now()
         myYear = myTime.strftime('%Y')
         myMonth = myTime.strftime('%m')
-        myDelta = datetime.timedelta(days=30)
+        myDelta = datetime.timedelta(days=10)
         myTime_min = myTime - myDelta
         myMonth_min = myTime_min.strftime('%m')
 
@@ -593,31 +593,31 @@ class Worker(QRunnable):
             myVar_min = "al_" + myYear + "_" + myMonth_min
 
             reg_alw = db[myVar]
+            for i in db[myVar_min].find().sort("_id", -1).limit(1):
+                myNumb = i["_id"]
 
-            for j in db[myVar_min].find():
-                myNumb = int(j["_id"])
-                reg_alw.insert_one({
-                    "_id": myNumb,
-                    "oficiul": "",
-                    "nr_ds": "",
-                    "nr_al": "",
-                    "instalatia": "",
-                    "pt": "",
-                    "localitatea": "",
-                    "fid_nr": "",
-                    "lucrarile": "",
-                    "sef": "",
-                    "mem_ech": "",
-                    "emitent": "",
-                    "cu_dec": "",
-                    "mas_teh": "",
-                    "semnatura": "",
-                    "starea": "",
-                    "pregatire": "",
-                    "admitere": "",
-                    "terminare": "",
-                    "link": ""
-                })
+            reg_alw.insert_one({
+                "_id": myNumb,
+                "oficiul": "",
+                "nr_ds": "",
+                "nr_al": "",
+                "instalatia": "",
+                "pt": "",
+                "localitatea": "",
+                "fid_nr": "",
+                "lucrarile": "",
+                "sef": "",
+                "mem_ech": "",
+                "emitent": "",
+                "cu_dec": "",
+                "mas_teh": "",
+                "semnatura": "",
+                "starea": "",
+                "pregatire": "",
+                "admitere": "",
+                "terminare": "",
+                "link": ""
+            })
 
         change_stream = reg_alw.watch([{
             '$match': {
@@ -5569,6 +5569,13 @@ class mainWindow(QMainWindow):
     #  Functie pentru popularea Registrului de autorizatii
     def regPop(self):
         # self.alFunc()
+        myTime = datetime.datetime.now()
+        myYear = myTime.strftime('%Y')
+        myMonth = myTime.strftime('%m')
+        myVar = "al_" + myYear + "_" + myMonth
+
+        self.reg_al = self.db[myVar]
+
         self.abrOficii()
         myDateTime = datetime.datetime.now()
 
@@ -6157,17 +6164,27 @@ class mainWindow(QMainWindow):
                     # Calculez numarul total de deconectari
                     data.at[i, "nr_dec"] = data.at[i, "nr_dec"] + data.at[i - 1, "nr_dec"]
 
-                    # Calculez timpul total de deconectare
-                    myTime = datetime.datetime.strptime(data.at[i, "ore"], '%H:%M:%S')
-                    myTimeMinus = datetime.datetime.strptime(data.at[i - 1, "ore"], '%H:%M:%S')
-                    delta = datetime.timedelta(
-                        hours=myTimeMinus.hour,
-                        minutes=myTimeMinus.minute,
-                    )
-                    myTimeDelta = myTime + delta
-                    data.at[i, "ore"] = datetime.datetime.strftime(myTimeDelta, '%H:%M:%S')
+                    #Calculez timpul total de deconectare
+                    myTm_list = data.at[i, "ore"].split(":")
+                    myTm_list_min = int(myTm_list[0]) * 60 + int(myTm_list[1])
 
-                    data.drop(i - 1, inplace=True)
+                    myTm_list_minus = data.at[i - 1, "ore"].split(":")
+                    myTm_list_minus_min = int(myTm_list_minus[0]) * 60 + int(myTm_list_minus[1])
+
+                    myTm_tot_min = myTm_list_min + myTm_list_minus_min
+                    myTime_format = str(myTm_tot_min // 60) + ":" + str(myTm_tot_min % 60) + \
+                                    ":00"
+                    data.at[i, "ore"] = myTime_format
+                    # myTime = datetime.datetime.strptime(data.at[i, "ore"], '%H:%M:%S')
+                    # myTimeMinus = datetime.datetime.strptime(data.at[i - 1, "ore"], '%H:%M:%S')
+                    # delta = datetime.timedelta(
+                    #     hours=myTimeMinus.hour,
+                    #     minutes=myTimeMinus.minute,
+                    # )
+                    # myTimeDelta = myTime + delta
+                    # data.at[i, "ore"] = datetime.datetime.strftime(myTimeDelta, '%H:%M:%S')
+                    #
+                    # data.drop(i - 1, inplace=True)
             data.sort_values(by="nr_dec", inplace=True, ignore_index=True, ascending=False)
             # print(data.shape[0])
             # # Calculez termenul reglementat urban, rural, suma compensatiilor
@@ -6513,14 +6530,26 @@ class mainWindow(QMainWindow):
                     data.at[i, "nr_dec"] = data.at[i, "nr_dec"] + data.at[i-1, "nr_dec"]
 
                     #Calculez timpul total de deconectare
-                    myTime = datetime.datetime.strptime(data.at[i, "ore"], '%H:%M:%S')
-                    myTimeMinus = datetime.datetime.strptime(data.at[i-1, "ore"], '%H:%M:%S')
-                    delta = datetime.timedelta(
-                        hours=myTimeMinus.hour,
-                        minutes=myTimeMinus.minute,
-                    )
-                    myTimeDelta = myTime + delta
-                    data.at[i, "ore"] = datetime.datetime.strftime(myTimeDelta, '%H:%M:%S')
+                    myTm_list = data.at[i, "ore"].split(":")
+                    myTm_list_min = int(myTm_list[0]) * 60 + int(myTm_list[1])
+
+                    myTm_list_minus = data.at[i-1, "ore"].split(":")
+                    myTm_list_minus_min = int(myTm_list_minus[0]) * 60 + int(myTm_list_minus[1])
+
+                    myTm_tot_min = myTm_list_min + myTm_list_minus_min
+                    myTime_format = str(myTm_tot_min // 60) + ":" + str(myTm_tot_min % 60) + \
+                        ":00"
+                    data.at[i, "ore"] = myTime_format
+                    # print(myTm_tot_min)
+                    # print(myTime_format)
+                    # myTime = datetime.datetime.strptime(data.at[i, "ore"], '%H:%M:%S')
+                    # myTimeMinus = datetime.datetime.strptime(data.at[i-1, "ore"], '%H:%M:%S')
+                    # delta = datetime.timedelta(
+                    #     hours=myTimeMinus.hour,
+                    #     minutes=myTimeMinus.minute,
+                    # )
+                    # myTimeDelta = myTime + delta
+                    # data.at[i, "ore"] = datetime.datetime.strftime(myTimeDelta, '%H:%M:%S')
 
                     data.drop(i-1, inplace=True)
             data.sort_values(by="nr_dec", inplace=True, ignore_index=True, ascending=False)
