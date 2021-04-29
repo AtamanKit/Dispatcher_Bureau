@@ -573,30 +573,69 @@ class Worker(QRunnable):
 
     def run(self):
         mainWindow.loadMongo(self)
+        db = self.client.djUN_test
 
         myTime = datetime.datetime.now()
         myYear = myTime.strftime('%Y')
         myMonth = myTime.strftime('%m')
-        for i in self.client.djUN_test.list_collection_names():
-            if i == "al_" + myYear + "_" + myMonth:
-                reg_alw = self.client.djUN_test[i]
+        myDelta = datetime.timedelta(days=30)
+        myTime_min = myTime - myDelta
+        myMonth_min = myTime_min.strftime('%m')
 
-                change_stream = reg_alw.watch([{
-                    '$match': {
-                            'operationType': {'$in': ['update']}
-                    }}, {
-                    '$project': {
-                        'fullDocument_id': '$fullDocument._id',
-                        'pregatire': '$fullDocument.pregatire',
-                        'admitere': '$fullDocument.admitere',
-                        'terminare': '$fullDocument.terminare',
-                    }
-                }], full_document='updateLookup')
-                for change in change_stream:
-                    if change['pregatire'] == 'Cerere la pregatire' \
-                        or change['admitere'] == 'Cerere la admitere' \
-                        or change['terminare'] == 'Cerere la terminare':
-                        self.signal.finished.emit()
+        reg_alw = None
+
+        for i in db.list_collection_names():
+            if i == "al_" + myYear + "_" + myMonth:
+                reg_alw = db[i]
+
+        if reg_alw == None:
+            myVar = "al_" + myYear + "_" + myMonth
+            myVar_min = "al_" + myYear + "_" + myMonth_min
+
+            reg_alw = db[myVar]
+
+            for j in db[myVar_min].find():
+                myNumb = int(j["_id"])
+                reg_alw.insert_one({
+                    "_id": myNumb,
+                    "oficiul": "",
+                    "nr_ds": "",
+                    "nr_al": "",
+                    "instalatia": "",
+                    "pt": "",
+                    "localitatea": "",
+                    "fid_nr": "",
+                    "lucrarile": "",
+                    "sef": "",
+                    "mem_ech": "",
+                    "emitent": "",
+                    "cu_dec": "",
+                    "mas_teh": "",
+                    "semnatura": "",
+                    "starea": "",
+                    "pregatire": "",
+                    "admitere": "",
+                    "terminare": "",
+                    "link": ""
+                })
+
+        change_stream = reg_alw.watch([{
+            '$match': {
+                'operationType': {'$in': ['update']}
+            }}, {
+            '$project': {
+                'fullDocument_id': '$fullDocument._id',
+                'pregatire': '$fullDocument.pregatire',
+                'admitere': '$fullDocument.admitere',
+                'terminare': '$fullDocument.terminare',
+            }
+        }], full_document='updateLookup')
+        for change in change_stream:
+            if change['pregatire'] == 'Cerere la pregatire' \
+                    or change['admitere'] == 'Cerere la admitere' \
+                    or change['terminare'] == 'Cerere la terminare':
+                self.signal.finished.emit()
+
 
 class WorkerSound(QRunnable):
 
@@ -3421,7 +3460,7 @@ class mainWindow(QMainWindow):
 
     #Functie populez Biroul dispecerului cu Autorizatie
     def centrAlPop(self):
-        self.alFunc()
+        # self.alFunc()
         global elSoundContr
         elSoundContr = True
 
@@ -5479,57 +5518,57 @@ class mainWindow(QMainWindow):
         except AttributeError:
             pass
 
-    def alFunc(self):
-        myTime = datetime.datetime.now()
-        myDelta = datetime.timedelta(days=10)
-        myMonthMinus = myTime - myDelta
-
-        myTime_year = myTime.strftime("%Y")
-        myTime_month = myTime.strftime("%m")
-
-        myMthMinus_year = myMonthMinus.strftime("%Y")
-        myMthMinus_month = myMonthMinus.strftime("%m")
-
-        self.reg_al = None
-
-        for i in self.db.list_collection_names():
-            if i == "al_" + myTime_year + "_" + myTime_month:
-                self.reg_al = self.db[i]
-
-        if self.reg_al == None:
-            myVar = "al_" + myTime_year + "_" + myTime_month
-            myVarMin = "al_" + myMthMinus_year + "_" + \
-                       myMthMinus_month
-
-            for j in self.db[myVarMin].find().sort("_id", -1).limit(1):
-                myNumb = int(j["_id"])
-                self.reg_al = self.db[myVar]
-                self.reg_al.insert_one({
-                    "_id": myNumb,
-                    "oficiul": "",
-                    "nr_ds": "",
-                    "nr_al": "",
-                    "instalatia": "",
-                    "pt": "",
-                    "localitatea": "",
-                    "fid_nr": "",
-                    "lucrarile": "",
-                    "sef": "",
-                    "mem_ech": "",
-                    "emitent": "",
-                    "cu_dec": "",
-                    "mas_teh": "",
-                    "semnatura": "",
-                    "starea": "",
-                    "pregatire": "",
-                    "admitere": "",
-                    "terminare": "",
-                    "link": ""
-                })
+    # def alFunc(self):
+    #     myTime = datetime.datetime.now()
+    #     myDelta = datetime.timedelta(days=10)
+    #     myMonthMinus = myTime - myDelta
+    #
+    #     myTime_year = myTime.strftime("%Y")
+    #     myTime_month = myTime.strftime("%m")
+    #
+    #     myMthMinus_year = myMonthMinus.strftime("%Y")
+    #     myMthMinus_month = myMonthMinus.strftime("%m")
+    #
+    #     self.reg_al = None
+    #
+    #     for i in self.db.list_collection_names():
+    #         if i == "al_" + myTime_year + "_" + myTime_month:
+    #             self.reg_al = self.db[i]
+    #
+    #     if self.reg_al == None:
+    #         myVar = "al_" + myTime_year + "_" + myTime_month
+    #         myVarMin = "al_" + myMthMinus_year + "_" + \
+    #                    myMthMinus_month
+    #
+    #         for j in self.db[myVarMin].find().sort("_id", -1).limit(1):
+    #             myNumb = int(j["_id"])
+    #             self.reg_al = self.db[myVar]
+    #             self.reg_al.insert_one({
+    #                 "_id": myNumb,
+    #                 "oficiul": "",
+    #                 "nr_ds": "",
+    #                 "nr_al": "",
+    #                 "instalatia": "",
+    #                 "pt": "",
+    #                 "localitatea": "",
+    #                 "fid_nr": "",
+    #                 "lucrarile": "",
+    #                 "sef": "",
+    #                 "mem_ech": "",
+    #                 "emitent": "",
+    #                 "cu_dec": "",
+    #                 "mas_teh": "",
+    #                 "semnatura": "",
+    #                 "starea": "",
+    #                 "pregatire": "",
+    #                 "admitere": "",
+    #                 "terminare": "",
+    #                 "link": ""
+    #             })
 
     #  Functie pentru popularea Registrului de autorizatii
     def regPop(self):
-        self.alFunc()
+        # self.alFunc()
         self.abrOficii()
         myDateTime = datetime.datetime.now()
 
